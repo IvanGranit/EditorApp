@@ -5,6 +5,20 @@ from PyQt5.QtCore import QMimeData, Qt
 
 class Geometry(QLabel):
 
+    def __init__(self, parent=None, parent_class=None, x=None, y=None, w=None, h=None, geom=None):
+
+        super().__init__(parent)
+        self.parent_class = parent_class
+        
+        if not geom:
+            self.setStyleSheet('border: 3px solid white')
+            self.setGeometry(x, y, w - x, h - y)
+        else:
+            self.setStyleSheet('border: 1px solid red; background-color: rgb(100,100,100);')
+            self.setGeometry(int(geom[0] / 4), int(geom[1] / 4), 7, 7)
+
+        self.show()
+
     def mouseMoveEvent(self, ev: QtGui.QMouseEvent) -> None:
         if ev.buttons() != Qt.RightButton:
             mimeData = QMimeData()
@@ -22,23 +36,3 @@ class Geometry(QLabel):
             self.setStyleSheet('border: 3px solid black')
 
         self.parent_class.call(self)
-
-
-class simpleRect(Geometry):
-
-    def __init__(self, parent=None, parent_class=None, x=None, y=None, w=None, h=None):
-        super().__init__(parent)
-        self.parent_class = parent_class
-        self.setStyleSheet('border: 3px solid white')
-        self.setGeometry(x, y, w - x, h - y)
-        self.show()
-
-
-class simplePoint(Geometry):
-
-    def __init__(self, parent=None, parent_class=None, geom=None):
-        super().__init__(parent)
-        self.parent_class = parent_class
-        self.setStyleSheet('border: 1px solid red; background-color: rgb(100,100,100);')
-        self.setGeometry(int(geom[0] / 4), int(geom[1] / 4), 7, 7)
-        self.show()
