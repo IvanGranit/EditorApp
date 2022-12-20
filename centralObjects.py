@@ -5,17 +5,17 @@ from PyQt5.QtCore import QMimeData, Qt
 
 class Geometry(QLabel):
 
-    def __init__(self, parent=None, parent_class=None, x=None, y=None, w=None, h=None, geom=None):
+    def __init__(self, parent=None, parent_class=None, x=None, y=None, w=None, h=None, rect=None):
 
         super().__init__(parent)
         self.parent_class = parent_class
         
-        if not geom:
+        if not rect:
             self.setStyleSheet('border: 3px solid white')
             self.setGeometry(x, y, w - x, h - y)
         else:
             self.setStyleSheet('border: 1px solid red; background-color: rgb(100,100,100);')
-            self.setGeometry(int(geom[0] / 4), int(geom[1] / 4), 7, 7)
+            self.setGeometry(int(rect[0] / 4), int(rect[1] / 4), 7, 7)
 
         self.show()
 
