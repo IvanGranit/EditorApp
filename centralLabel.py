@@ -4,7 +4,7 @@ from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtCore import QRect
 from PyQt5.QtGui import QPainter, QFont
 from PyQt5.QtWidgets import QLabel
-from centralObjects import simpleRect, simplePoint
+from centralObjects import Geometry
 #from centralInstruments import Selection
 
 import numpy as np
@@ -23,12 +23,12 @@ class Label(QLabel):
         self.setAcceptDrops(True)
 
     def add_widget(self):
-        self.objects.append(simpleRect(self, self, *self.points))
+        self.objects.append(Geometry(self, self, *self.points))
         self.current_object = -1
 
     def add_points(self, points: list):
         for point in points:
-            self.objects.append(simplePoint(self, self, point))
+            self.objects.append(Geometry(self, self, *self.points, point))
 
     def mousePressEvent(self, event):
         if event.buttons() == QtCore.Qt.LeftButton:
