@@ -60,6 +60,7 @@ class Label(QLabel):
                 self.parent().to_points_elements(self.points)
                 self.parent().to_points_dots(dots)
                 self.parent().next_item()
+            # exceptions WIP(do later)
             except IndexError:
                 ex = 'Не найдено ни одной контрольной точки, \n попробуйте снова'
                 self.onerror(ex)
