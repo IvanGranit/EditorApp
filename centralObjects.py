@@ -9,7 +9,7 @@ class Geometry(QLabel):
 
         super().__init__(parent)
         self.parent_class = parent_class
-        
+
         if not rect:
             self.setStyleSheet('border: 3px solid white')
             self.setGeometry(x, y, w - x, h - y)

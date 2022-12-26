@@ -3,9 +3,10 @@ from time import sleep
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtCore import QRect
 from PyQt5.QtGui import QPainter, QFont
-from PyQt5.QtWidgets import QLabel
+from PyQt5.QtWidgets import QLabel, QMessageBox
 from centralObjects import Geometry
-#from centralInstruments import Selection
+import cv2
+from centralInstruments import Selection
 
 import numpy as np
 
@@ -42,23 +43,38 @@ class Label(QLabel):
             self.update()
 
     def mouseReleaseEvent(self, event):
-        if event.button() and QtCore.Qt.LeftButton:
-            rect = QRect(self.start, self.finish)
-            painter = QPainter(self)
-            painter.drawRect(rect.normalized())
-            self.points = np.array([self.start.x(),
-                                    self.start.y(),
-                                    self.finish.x(),
-                                    self.finish.y()])
-            self.start, self.finish = QtCore.QPoint(), QtCore.QPoint()
+        if event.button() and QtCore.Qt.LeftButton and (self.start != self.finish):
+            try:
+                rect = QRect(self.start, self.finish)
+                painter = QPainter(self)
+                painter.drawRect(rect.normalized())
+                self.points = np.array([self.start.x(),
+                                        self.start.y(),
+                                        self.finish.x(),
+                                        self.finish.y()])
+                self.start, self.finish = QtCore.QPoint(), QtCore.QPoint()
 
-            self.add_widget()
-            dots = self.images_list[-1].pins2json(self.points * 4)
-            self.add_points(points=dots)
-            # self.parent().to_points_elements(self.points)
-            # self.parent().to_points_dots(dots)
-            # self.parent().next_item()
-
+                self.add_widget()
+                dots = self.images_list[-1].pins2json(self.points * 4)
+                self.add_points(points=dots)
+                self.parent().to_points_elements(self.points)
+                self.parent().to_points_dots(dots)
+                self.parent().next_item()
+            except IndexError:
+                ex = 'Не найдено ни одной контрольной точки, \n попробуйте снова'
+                self.onerror(ex)
+            except KeyError:
+                ex = 'Ошибка определения \n (Возможно вы не выбрали проект)'
+                self.onerror(ex)
+            except cv2.error:
+                ex = 'Ошибка выделения, пожалуйста не выходите за границы окна'
+                self.onerror(ex)
+            except ValueError:
+                ex = 'Ошибка обработки значений, \n попробуйте снова'
+                self.onerror(ex)
+            except Exception:
+                ex = 'Неизвестная ошибка'
+                self.onerror(ex)
 
     def paintEvent(self, event):
         super(Label, self).paintEvent(event)
@@ -66,6 +82,7 @@ class Label(QLabel):
         if not self.start.isNull() and not self.finish.isNull():
             rect = QRect(self.start, self.finish)
             painter.drawRect(rect.normalized())
+
 
     def dragEnterEvent(self, e):
         e.accept()
@@ -80,3 +97,9 @@ class Label(QLabel):
 
     def call(self, child_class=None):
         self.current_object = self.objects.index(child_class)
+
+    def onerror(self, ex):
+        message = QMessageBox()
+        message.setWindowTitle('Ошибка')
+        message.setText(ex)
+        message.exec_()
