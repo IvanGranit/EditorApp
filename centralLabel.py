@@ -1,11 +1,13 @@
 from time import sleep
 
+import matplotlib.pyplot as plt
 from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtCore import QRect
+from PyQt5.QtCore import QRect, QMimeData, Qt
 from PyQt5.QtGui import QPainter, QFont
-from PyQt5.QtWidgets import QLabel, QMessageBox
+from PyQt5.QtWidgets import QLabel, QMessageBox, QListWidget
 from centralObjects import Geometry
 import cv2
+from qtpy import QtGui
 from centralInstruments import Selection
 
 import numpy as np
@@ -42,7 +44,7 @@ class Label(QLabel):
             self.finish = event.pos()
             self.update()
 
-    def mouseReleaseEvent(self, event):
+    def mouseReleaseEvent(self, event):    
         if event.button() and QtCore.Qt.LeftButton and (self.start != self.finish):
             try:
                 rect = QRect(self.start, self.finish)
