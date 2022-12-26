@@ -1,9 +1,6 @@
 RuntimeWarning: invalid value encountered in double_scalars
 
 
-Process finished with exit code -1073740791 (0xC0000409)
-
-
 IndexError: too many indices for array: array is 1-dimensional, but 2 were indexed
 
 
