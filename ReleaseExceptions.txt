@@ -1,17 +1,52 @@
-RuntimeWarning: invalid value encountered in double_scalars
+C:\Users\samod\Desktop\Workspace\Python_Project\EditorApp-development\Image.py:50: RuntimeWarning: Mean of empty slice.
+  r_mean = (cen_sorted[cen_sorted[:, 0] > mean_val][:, 0]).mean()
+C:\Users\samod\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\numpy\core\_methods.py:190: RuntimeWarning: invalid value encountered in double_scalars
+  ret = ret.dtype.type(ret / rcount)
+
+Process finished with exit code -1073740791 (0xC0000409)
 
 
+Traceback (most recent call last):
+  File "C:\Users\samod\Desktop\Workspace\Python_Project\EditorApp-development\centralLabel.py", line 56, in mouseReleaseEvent
+    dots = self.images_list[-1].pins2json(self.points * 4)
+  File "C:\Users\samod\Desktop\Workspace\Python_Project\EditorApp-development\Image.py", line 133, in pins2json
+    return dumping_json(cen_sorted=np.array(cen_sorted))
+  File "C:\Users\samod\Desktop\Workspace\Python_Project\EditorApp-development\Image.py", line 49, in dumping_json
+    l_mean = (cen_sorted[cen_sorted[:, 0] < mean_val][:, 0]).mean()
 IndexError: too many indices for array: array is 1-dimensional, but 2 were indexed
+python-BaseException
+Process finished with exit code 1
 
 
+Traceback (most recent call last):
+  File "C:\Users\samod\Desktop\Workspace\Python_Project\EditorApp-development\centralLabel.py", line 60, in mouseReleaseEvent
+    self.parent().to_points_dots(dots)
+  File "C:\Users\samod\Desktop\Workspace\Python_Project\EditorApp-development\design.py", line 119, in to_points_dots
+    self.dict['Dots'][f'{self.list_widgets.currentItem().text()}_{num + 1}']['Views']['0'] = \
 KeyError: 'Test16_15'
+python-BaseException
+Process finished with exit code 1
 
 
-
+Traceback (most recent call last):
+  File "C:\Users\samod\Desktop\Workspace\Python_Project\EditorApp-development\centralLabel.py", line 57, in mouseReleaseEvent
+    dots = self.images_list[-1].pins2json(self.points * 4)
+  File "C:\Users\samod\Desktop\Workspace\Python_Project\EditorApp-development\Image.py", line 78, in pins2json
+    crop_img = cv2.resize(crop_img, (256, 256)) / 255
 cv2.error: OpenCV(4.6.0) D:\a\opencv-python\opencv-python\opencv\modules\imgproc\src\resize.cpp:4052: error: (-215:Assertion failed) !ssize.empty() in function 'cv::resize'
 
 
-
+C:\Users\samod\Desktop\Workspace\Python_Project\EditorApp-development\Image.py:50: RuntimeWarning: Mean of empty slice.
+  r_mean = (cen_sorted[cen_sorted[:, 0] > mean_val][:, 0]).mean()
+C:\Users\samod\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\numpy\core\_methods.py:190: RuntimeWarning: invalid value encountered in double_scalars
+  ret = ret.dtype.type(ret / rcount)
+Traceback (most recent call last):
+  File "C:\Users\samod\Desktop\Workspace\Python_Project\EditorApp-development\centralLabel.py", line 58, in mouseReleaseEvent
+    dots = self.images_list[-1].pins2json(self.points * 4)
+  File "C:\Users\samod\Desktop\Workspace\Python_Project\EditorApp-development\Image.py", line 133, in pins2json
+    return dumping_json(cen_sorted=np.array(cen_sorted))
+  File "C:\Users\samod\Desktop\Workspace\Python_Project\EditorApp-development\Image.py", line 53, in dumping_json
+    cen_sorted[:, 0][cen_sorted[:, 0] > mean_val] = int(r_mean)
 ValueError: cannot convert float NaN to integer
 
 
