@@ -102,9 +102,3 @@ class Label(QLabel):
 
     def call(self, child_class=None):
         self.current_object = self.objects.index(child_class)
-
-    def onerror(self, ex):
-        message = QMessageBox()
-        message.setWindowTitle('Ошибка')
-        message.setText(ex)
-        message.exec_()
