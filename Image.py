@@ -47,6 +47,7 @@ class Image:
             mean_val = abs(y1 - y2) / 2 + min(y1, y2)
 
             # Получаем средние значения для координат y для левой (l_mean) части и правой (r_mean) микросхемы
+            assert cen_sorted.any(), 'NoneType mean'
             l_mean = (cen_sorted[cen_sorted[:, 0] < mean_val][:, 0]).mean()
             r_mean = (cen_sorted[cen_sorted[:, 0] > mean_val][:, 0]).mean()
 

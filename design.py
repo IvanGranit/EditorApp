@@ -10,7 +10,7 @@ import glob
 
 from PyQt5.QtCore import Qt, QRect
 from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtGui import QPixmap, QImage, QPen, QPainter, QPalette, QDrag, QFont
+from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QLabel, QMainWindow, QWidget, QVBoxLayout, QListWidget, QListWidgetItem, QMessageBox
 from qtpy import QtGui
 from decoder import lazyDecoder
@@ -18,8 +18,6 @@ import json
 
 from Image import Image
 from centralLabel import Label
-# from centralInstruments import Selection
-# Попробовать сделать qwidget с инициализацией в виде загрузки картинки и методлом
 from model import build_model
 
 
@@ -50,28 +48,21 @@ class centralWidget(QtWidgets.QWidget):
         self.create_list()
 
         self.pushButton = QtWidgets.QPushButton(self)
-        self.pushButton.setGeometry(QtCore.QRect(8, 971, 470, 70))
+        self.pushButton.setGeometry(QtCore.QRect(10, 0, 121, 30))
         self.pushButton.setObjectName("pushButton")
-        self.pushButton.setText('1')
-        self.pushButton.setFont(QFont('Arial', 15))
+        self.pushButton.setText('push')
 
         self.pushButton_2 = QtWidgets.QPushButton(self)
-        self.pushButton_2.setGeometry(QtCore.QRect(487, 971, 470, 70))
+        self.pushButton_2.setGeometry(QtCore.QRect(10, 40, 121, 30))
         self.pushButton_2.setObjectName("pushButton2")
-        self.pushButton_2.setText('2')
-        self.pushButton_2.setFont(QFont('Arial', 15))
 
         self.pushButton_3 = QtWidgets.QPushButton(self)
-        self.pushButton_3.setGeometry(QtCore.QRect(966, 971, 470, 70))
+        self.pushButton_3.setGeometry(QtCore.QRect(10, 80, 121, 30))
         self.pushButton_3.setObjectName("pushButton3")
-        self.pushButton_3.setText('3')
-        self.pushButton_3.setFont(QFont('Arial', 15))
 
         self.pushButton_4 = QtWidgets.QPushButton(self)
-        self.pushButton_4.setGeometry(QtCore.QRect(1445, 971, 470, 70))
+        self.pushButton_4.setGeometry(QtCore.QRect(10, 120, 101, 30))
         self.pushButton_4.setObjectName("pushButton4")
-        self.pushButton_4.setText('4')
-        self.pushButton_4.setFont(QFont('Arial', 15))
 
         self.info_line = QLabel('Hellow!', parent=self)
         self.info_line.setGeometry(QtCore.QRect(0, 933, 1920, 30))
@@ -92,7 +83,7 @@ class centralWidget(QtWidgets.QWidget):
         self.list_widgets.clicked.connect(self.item_clicked)
 
     def load_project(self):
-    
+
         dirlist = QtWidgets.QFileDialog.getExistingDirectory(None, "Выбрать папку", ".")
 
         if dirlist:
@@ -128,27 +119,18 @@ class centralWidget(QtWidgets.QWidget):
 
     def next_item(self):
         self.list_widgets.setCurrentRow(self.list_widgets.currentRow() + 1)
-        if self.list_widgets.currentRow() == -1:
-            self.end_of_list()
-
-    def end_of_list(self) -> None:
-        message = QMessageBox()
-        message.setWindowTitle('Конец списка')
-        message.setText('Последний элемент списка был успешно обработан')
-        message.exec_()
 
     def item_clicked(self):
         print(f'item clicked {self.list_widgets.currentItem().text()}')
 
     def to_points_elements(self, points: list):
-
+        assert self.dict, 'NoneType dict'
         element = self.list_widgets.currentItem().text()
         self.dict['Elements'][element]['Views']['0'] = \
             [{'L': int(min(points[0], points[2])) * 5,
               'T': int(min(points[1], points[3])) * 5,
               'R': int(max(points[0], points[2])) * 5,
               'B': int(max(points[1], points[3])) * 5,
-
               'Section': self.list_widgets.currentItem().text()}]
         self.info_line.setText(f'Element position {self.list_widgets.currentItem().text()} added into Points')
 
@@ -169,7 +151,7 @@ class centralWidget(QtWidgets.QWidget):
                     f'Dot position {self.list_widgets.currentItem().text()}_{num + 1} not added into Points')
 
     def rewrite(self):
-        dirlist = QtWidgets.QFileDialog.getExistingDirectory(None, "Выбрать папку", "C:/Users/samod/Desktop/ASCD/ASCD/Projects")
+        dirlist = QtWidgets.QFileDialog.getExistingDirectory(None, "Выбрать папку", ".")
         with open(dirlist + r'/Контрольные точки/Points', 'w') as ff:
             json.dump(self.dict, ff, indent=1)
         self.info_line.setText(f'File {dirlist}/Контрольные точки/Points rewrite')
