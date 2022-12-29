@@ -115,10 +115,16 @@ class centralWidget(QtWidgets.QWidget):
 
             # for file in glob.glob(dirlist + r'\Виды\*'):
 
-
-
     def next_item(self):
         self.list_widgets.setCurrentRow(self.list_widgets.currentRow() + 1)
+        if self.list_widgets.currentRow() == -1:
+            self.end_of_list()
+
+    def end_of_list(self) -> None:
+        message = QMessageBox()
+        message.setWindowTitle('Конец списка')
+        message.setText('Последний элемент списка был успешно обработан')
+        message.exec_()
 
     def item_clicked(self):
         print(f'item clicked {self.list_widgets.currentItem().text()}')
