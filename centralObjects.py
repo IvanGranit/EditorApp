@@ -1,18 +1,19 @@
 from PyQt5.QtWidgets import QLabel
 from qtpy import QtGui
 from PyQt5.QtCore import QMimeData, Qt
+import numpy as np
 
 
 class Geometry(QLabel):
 
-    def __init__(self, parent=None, parent_class=None, x=None, y=None, w=None, h=None, rect=None):
+    def __init__(self, parent=None, parent_class=None, x_start=None, y_start=None, x_finish=None, y_finish=None, rect=None):
 
         super().__init__(parent)
         self.parent_class = parent_class
 
         if not rect:
             self.setStyleSheet('border: 3px solid white')
-            self.setGeometry(x, y, w - x, h - y)
+            self.setGeometry(min(x_start, x_finish), min(y_start, y_finish), np.abs(x_start - x_finish), np.abs(y_start - y_finish))
         else:
             self.setStyleSheet('border: 1px solid red; background-color: rgb(100,100,100);')
             self.setGeometry(int(rect[0] / 4), int(rect[1] / 4), 7, 7)

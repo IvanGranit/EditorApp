@@ -1,13 +1,16 @@
 from time import sleep
 
-from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtCore import QRect
-from PyQt5.QtGui import QPainter, QFont
-from PyQt5.QtWidgets import QLabel, QMessageBox, QListWidgetItem
+import matplotlib.pyplot as plt
+from PyQt5 import QtCore
+from PyQt5.QtCore import QRect, QMimeData, Qt
+from PyQt5.QtGui import QPainter, QPixmap
+from PyQt5.QtWidgets import QLabel, QListWidget
+from qtpy import QtGui
 from centralObjects import Geometry
-import cv2
+
 import numpy as np
-import json
+
+from canvas import Canvas
 
 
 class Label(QLabel):
@@ -21,7 +24,6 @@ class Label(QLabel):
         self.points = None
         self.setAcceptDrops(True)
         self.flag = True
-        ex_dirlist = None
 
     def add_widget(self):
         self.objects.append(Geometry(self, self, *self.points))
@@ -40,7 +42,19 @@ class Label(QLabel):
     def mouseMoveEvent(self, event):
         if event.buttons() and QtCore.Qt.LeftButton:
             self.finish = event.pos()
+            self.borderCheck()
             self.update()
+            print(self.start, self.finish)
+
+    def borderCheck(self):
+        if self.finish.x() < 1:
+            self.finish.setX(1)
+        elif self.finish.x() > self.parent().cen_label.width() - 3:
+            self.finish.setX(self.parent().cen_label.width() - 3)
+        if self.finish.y() < 1:
+            self.finish.setY(1)
+        elif self.finish.y() > self.parent().cen_label.height() - 3:
+            self.finish.setY(self.parent().cen_label.height() - 3)
 
     def mouseReleaseEvent(self, event):
         if event.button() and QtCore.Qt.LeftButton and (self.start != self.finish):
@@ -54,33 +68,11 @@ class Label(QLabel):
             self.start, self.finish = QtCore.QPoint(), QtCore.QPoint()
 
             self.add_widget()
-
-            try:
-                dots = self.images_list[-1].pins2json(self.points * 4)
-                self.add_points(points=dots)
-            except Exception as ex:
-                print(f'error {ex}')
-                return
-
-            try:
-                self.parent().to_points_elements(self.points)
-                self.parent().to_points_dots(dots)
-                self.parent().next_item()
-            except Exception as ex:
-                print(f'error {ex}')
-                if self.flag:
-                    message = QMessageBox()
-                    message.setWindowTitle(f'error {ex}')
-                    message.setText('Словарь пуст. \n Убедитесь, загружен ли проект')
-                    message.setStandardButtons(QMessageBox.Open | QMessageBox.Ignore)
-                    answer = message.exec_()
-                    if answer == QMessageBox.Open:
-                        return
-                    elif answer == QMessageBox.Ignore:
-                        self.flag = False
-                        return
-                    else:
-                        return
+            dots = self.images_list[-1].pins2json(self.points * 4)
+            self.add_points(points=dots)
+            self.parent().to_points_elements(self.points)
+            self.parent().to_points_dots(dots)
+            self.parent().next_item()
 
     def paintEvent(self, event):
         super(Label, self).paintEvent(event)
@@ -102,3 +94,6 @@ class Label(QLabel):
 
     def call(self, child_class=None):
         self.current_object = self.objects.index(child_class)
+
+
+
