@@ -9,6 +9,93 @@ import numpy as np
 
 from canvas import Canvas
 
+import logging
+from datetime import datetime
+
+logging.basicConfig(level=logging.WARNING, format="%(asctime)s %(levelname)s %(message)s", datefmt="%Y-%m-%d %H:%M:%S", filename=f"logs/{datetime.now().date()}.log")
+
+
+class MovableTabs(QTabWidget):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.setMinimumSize(550, 30)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.parent = parent
+        self.setAcceptDrops(True)
+        self.tabBar = self.tabBar()
+        self.tabBar.setMouseTracking(True)
+        self.indexTab = None
+        self.setMovable(True)
+        self.setDocumentMode(True)
+
+    def mouseMoveEvent(self, e):
+
+        if e.buttons() != Qt.RightButton:
+
+            return
+
+        globalPos = self.mapToGlobal(e.pos())
+        tabBar = self.tabBar
+        posInTab = tabBar.mapFromGlobal(globalPos)
+        self.indexTab = tabBar.tabAt(e.pos())
+        tabRect = tabBar.tabRect(self.indexTab)
+
+        pixmap = QPixmap(tabRect.size())
+        tabBar.render(pixmap, QPoint(), QRegion(tabRect))
+        mimeData = QMimeData()
+        drag = QDrag(tabBar)
+        drag.setMimeData(mimeData)
+        drag.setPixmap(pixmap)
+        cursor = QCursor(Qt.OpenHandCursor)
+        drag.setHotSpot(e.pos() - posInTab)
+        drag.setDragCursor(cursor.pixmap(), Qt.MoveAction)
+        dropAction = drag.exec_(Qt.MoveAction)
+
+    def dragEnterEvent(self, event):
+
+        try:
+
+            event.accept()
+
+            if event.source().parentWidget() != self:
+                return
+
+            self.parent.TABINDEX = self.indexOf(self.widget(self.indexTab))
+
+        except Exception as ex:
+
+            logging.critical(f"{type(ex)}; Wrong tab drag event; widget: {type(self)}; py: {ex}")
+
+    def dragLeaveEvent(self, event):
+
+        event.accept()
+
+    def dropEvent(self, event):
+
+        if event.source().parentWidget() == self:
+
+            return
+
+        event.setDropAction(Qt.MoveAction)
+        event.accept()
+        counter = self.count()
+
+        try:
+
+            if counter == 0:
+
+                self.addTab(event.source().parentWidget().widget(self.parent.TABINDEX),
+                            event.source().tabText(self.parent.TABINDEX))
+
+            else:
+
+                self.insertTab(counter + 1, event.source().parentWidget().widget(self.parent.TABINDEX),
+                               event.source().tabText(self.parent.TABINDEX))
+
+        except Exception as ex:
+
+            logging.critical(f"{type(ex)}; Wrong tab drop event; widget: {type(self)}; py: {ex}")
+
 
 class TreeWidgetItem(QTreeWidgetItem):
 
@@ -24,6 +111,7 @@ class TreeWidgetItem(QTreeWidgetItem):
         self.type = el_type
 
         self.status = False
+        self.graphic = None
 
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -42,10 +130,14 @@ class TreeWidgetItem(QTreeWidgetItem):
         self.widget.setLayout(layout)
 
     def change_status(self, status: bool):
+
         if status:
+
             self.status = True
             self.el_label.setText(self.name + " ✓")
+
         else:
+
             self.status = False
             self.el_label.setText(self.name)
 
@@ -60,12 +152,17 @@ class TreeWidgetChild(QTreeWidgetItem):
 
         self.name = name
         self.status = False
+        self.graphic = None
 
     def change_status(self, status: bool):
+
         if status:
+
             self.status = True
             self.setText(0, self.name + " ✓")
+
         else:
+
             self.status = False
             self.setText(0, self.name)
 
@@ -121,6 +218,7 @@ class GraphicsBlueprintItem(QGraphicsPixmapItem):
         self.pixmap = QPixmap(path)
         self.setPixmap(self.pixmap)
         self.adjustable = False
+        self.visible = True
         self.dx, self.dy = 0, 0
         self.anchors = {}
         self.update_anchors()
@@ -191,67 +289,107 @@ class GraphicsBlueprintItem(QGraphicsPixmapItem):
             "bottom": [QRectF(20, self.pixmap.height() - 20, self.pixmap.width() - 40, 20), Qt.SizeVerCursor],
         }
 
+        for el in self.childItems():
+            el.setRect(self.anchors[el.location][0])
+
     def anchor_drag(self, anchor, pos):
 
         x, y = int(pos.x()), int(pos.y())
         pix_x, pix_y, pix_width, pix_height = int(self.scenePos().x()), int(self.scenePos().y()), self.pixmap.width(), self.pixmap.height()
 
         if anchor.location == "left":
-            self.pixmap = QPixmap(self.path).scaled(QSize(pix_x - x + pix_width, pix_height), Qt.IgnoreAspectRatio)
-            self.setPixmap(self.pixmap)
-            self.setX(x)
-            self.flip_checker(side1="left")
+            if self.pixmap.width() != 100 or pix_x - x > 0:
+                self.pixmap = QPixmap(self.image).scaled(QSize(pix_x - x + pix_width, pix_height), Qt.IgnoreAspectRatio)
+                self.setPixmap(self.pixmap)
+                self.setX(x)
+                self.flip_checker(side1="left")
         if anchor.location == "top":
-            self.pixmap = QPixmap(self.path).scaled(QSize(pix_width, pix_y - y + pix_height), Qt.IgnoreAspectRatio)
-            self.setPixmap(self.pixmap)
-            self.setY(y)
-            self.flip_checker(side2="top")
+            if self.pixmap.height() != 100 or pix_y - y > 0:
+                self.pixmap = QPixmap(self.image).scaled(QSize(pix_width, pix_y - y + pix_height), Qt.IgnoreAspectRatio)
+                self.setPixmap(self.pixmap)
+                self.setY(y)
+                self.flip_checker(side2="top")
         if anchor.location == "right":
-            self.pixmap = QPixmap(self.path).scaled(QSize(x - (pix_x + pix_width) + pix_width, pix_height), Qt.IgnoreAspectRatio)
-            self.setPixmap(self.pixmap)
-            self.flip_checker(side1="right")
+            if self.pixmap.width() != 100 or x - (pix_x + pix_width) > 0:
+                self.pixmap = QPixmap(self.image).scaled(QSize(x - (pix_x + pix_width) + pix_width, pix_height), Qt.IgnoreAspectRatio)
+                self.setPixmap(self.pixmap)
+                self.flip_checker(side1="right")
         if anchor.location == "bottom":
-            self.pixmap = QPixmap(self.path).scaled(QSize(pix_width, y - (pix_y + pix_height) + pix_height), Qt.IgnoreAspectRatio)
-            self.setPixmap(self.pixmap)
-            self.flip_checker(side2="bottom")
+            if self.pixmap.height() != 100 or y - (pix_y + pix_height) > 0:
+                self.pixmap = QPixmap(self.image).scaled(QSize(pix_width, y - (pix_y + pix_height) + pix_height), Qt.IgnoreAspectRatio)
+                self.setPixmap(self.pixmap)
+                self.flip_checker(side2="bottom")
         if anchor.location == "topLeft":
-            self.pixmap = QPixmap(self.path).scaled(QSize(pix_x - x + pix_width, pix_y - y + pix_height), Qt.IgnoreAspectRatio)
+
+            if self.pixmap.width() == 100 and pix_x - x < 0:
+                x = int(self.x())
+                pix_x = x
+
+            if self.pixmap.height() == 100 and pix_y - y < 0:
+                y = int(self.y())
+                pix_y = y
+
+            self.pixmap = QPixmap(self.image).scaled(QSize(pix_x - x + pix_width, pix_y - y + pix_height), Qt.IgnoreAspectRatio)
             self.setPixmap(self.pixmap)
             self.setX(x)
             self.setY(y)
             self.flip_checker("left", "top")
         if anchor.location == "topRight":
-            self.pixmap = QPixmap(self.path).scaled(QSize(x - (pix_x + pix_width) + pix_width, pix_y - y + pix_height), Qt.IgnoreAspectRatio)
+
+            if self.pixmap.width() == 100 and x - (pix_x + pix_width) < 0:
+                x = int(self.x())
+                pix_x = x - pix_width
+
+            if self.pixmap.height() == 100 and pix_y - y < 0:
+                y = int(self.y())
+                pix_y = y
+
+            self.pixmap = QPixmap(self.image).scaled(QSize(x - (pix_x + pix_width) + pix_width, pix_y - y + pix_height), Qt.IgnoreAspectRatio)
             self.setPixmap(self.pixmap)
             self.setY(y)
             self.flip_checker("right", "top")
         if anchor.location == "bottomRight":
-            self.pixmap = QPixmap(self.path).scaled(QSize(x - (pix_x + pix_width) + pix_width, y - (pix_y + pix_height) + pix_height), Qt.IgnoreAspectRatio)
+
+            if self.pixmap.width() == 100 and x - (pix_x + pix_width) < 0:
+                x = int(self.x())
+                pix_x = x - pix_width
+
+            if self.pixmap.height() == 100 and y - (pix_y + pix_height) < 0:
+                y = int(self.y())
+                pix_y = y - pix_height
+
+            self.pixmap = QPixmap(self.image).scaled(QSize(x - (pix_x + pix_width) + pix_width, y - (pix_y + pix_height) + pix_height), Qt.IgnoreAspectRatio)
             self.setPixmap(self.pixmap)
             self.flip_checker("right", "bottom")
         if anchor.location == "bottomLeft":
-            self.pixmap = QPixmap(self.path).scaled(QSize(pix_x - x + pix_width, y - (pix_y + pix_height) + pix_height), Qt.IgnoreAspectRatio)
+
+            if self.pixmap.width() == 100 and pix_x - x < 0:
+                x = int(self.x())
+                pix_x = x
+
+            if self.pixmap.height() == 100 and y - (pix_y + pix_height) < 0:
+                y = int(self.y())
+                pix_y = y - pix_height
+
+            self.pixmap = QPixmap(self.image).scaled(QSize(pix_x - x + pix_width, y - (pix_y + pix_height) + pix_height), Qt.IgnoreAspectRatio)
             self.setPixmap(self.pixmap)
             self.setX(x)
             self.flip_checker("left", "bottom")
 
         self.update_anchors()
 
-        for el in self.childItems():
-            el.setRect(self.anchors[el.location][0])
-
     def flip_checker(self, side1=None, side2=None):
 
         if self.pixmap.width() < 100:
-            self.pixmap = QPixmap(self.path).scaled(100, self.pixmap.height())
+            self.pixmap = QPixmap(self.image).scaled(100, self.pixmap.height())
             self.setPixmap(self.pixmap)
 
         if self.pixmap.height() < 100:
-            self.pixmap = QPixmap(self.path).scaled(self.pixmap.width(), 100)
+            self.pixmap = QPixmap(self.image).scaled(self.pixmap.width(), 100)
             self.setPixmap(self.pixmap)
 
         if self.pixmap.width() == 0 and self.pixmap.height() == 0:
-            self.pixmap = QPixmap(self.path).scaled(100, 100)
+            self.pixmap = QPixmap(self.image).scaled(100, 100)
 
 
 class BlueprintAnchor(QGraphicsRectItem):
@@ -308,6 +446,23 @@ class TabWidget(QGraphicsView):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
+        # Pin stuff
+        self.buffer_size = QSize()
+        self.reference_size = QSize(10, 10)
+        self.x_alignment = False
+        self.y_alignment = False
+        self.ai_rotation = None
+
+    def change_alignment(self, r: str):
+
+        if r == 'x':
+
+            self.x_alignment = not self.x_alignment
+
+        else:
+
+            self.y_alignment = not self.y_alignment
+
     def leaveEvent(self, event):
 
         if self.mainwindow.mod == "ZOOM":
@@ -317,28 +472,36 @@ class TabWidget(QGraphicsView):
 
         if event.key() == Qt.Key_Delete:
 
-            for item in self.current_el:
+            try:
 
-                self.scene().removeItem(item.sl)
-                self.scene().removeItem(item)
+                for item in self.current_el:
 
-                if type(item) == SimpleRect:
+                    self.scene().removeItem(item.sl)
+                    self.scene().removeItem(item)
 
-                    self.mainwindow.TreeListWidget.findItems(item.object_name, Qt.MatchExactly)[0].change_status(False)
+                    if type(item) == SimpleRect:
 
-                else:
+                        self.mainwindow.TreeListWidget.findItems(item.object_name, Qt.MatchExactly)[0].change_status(
+                            False)
 
-                    try:
+                    else:
 
-                        l_item = \
-                            self.mainwindow.TreeListWidget.findItems(item.object_name.split("_")[0], Qt.MatchExactly)[0]
-                        l_item.child(int(item.object_name.split("_")[-1]) - 1).change_status(False)
+                        try:
 
-                    except AttributeError:
+                            l_item = self.mainwindow.TreeListWidget.findItems(item.object_name.split("_")[0], Qt.MatchExactly)[0]
+                            l_item.child(int(item.object_name.split("_")[-1]) - 1).change_status(False)
 
-                        continue
+                        except AttributeError:
 
-            self.current_el.clear()
+                            continue
+
+            except Exception as ex:
+
+                logging.critical(f"{type(ex)}; Wrong item delete event; widget: {type(self)}; py: {ex}")
+
+
+
+        self.current_el.clear()
 
         if event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_T and self.blueprint:
 
@@ -354,6 +517,33 @@ class TabWidget(QGraphicsView):
             if self.blueprint:
 
                 self.blueprint.setAdjustable(False)
+
+    def resize_selected(self, size: QSizeF):
+
+        for el in self.current_el:
+
+            if type(el) == SimplePoint:
+
+                el.setRect(el.rect().x(), el.rect().y(), size.width(), size.height())
+                el.update_anchors()
+
+    def align_horizontal(self, x):
+
+        for el in self.current_el:
+
+            if type(el) == SimplePoint:
+
+                el.setRect(x, el.rect().y(), el.rect().width(), el.rect().height())
+                el.update_anchors()
+
+    def align_vertical(self, y):
+
+        for el in self.current_el:
+
+            if type(el) == SimplePoint:
+
+                el.setRect(el.rect().x(), y, el.rect().width(), el.rect().height())
+                el.update_anchors()
 
     def mousePressEvent(self, event):
 
@@ -378,7 +568,7 @@ class TabWidget(QGraphicsView):
 
                 if self.mainwindow.mod == "AI":
 
-                    if type(self.mainwindow.TreeListWidget.currentItem()) == TreeWidgetChild:
+                    if type(self.mainwindow.TreeListWidget.currentItem()) == TreeWidgetChild and (event.modifiers() != Qt.AltModifier and event.modifiers() != Qt.ControlModifier):
 
                         self.mainwindow.log("Can't place pins in AI mode, change current item or mode!")
                         return
@@ -400,7 +590,7 @@ class TabWidget(QGraphicsView):
 
             elif event.button() == Qt.RightButton:
 
-                if self.blueprint:
+                if self.blueprint and self.blueprint.visible:
                     self.blueprint.setVisible(False)
 
                 _event = QMouseEvent(event.type(), event.pos(), Qt.LeftButton, Qt.LeftButton, event.modifiers())
@@ -448,7 +638,6 @@ class TabWidget(QGraphicsView):
             if self.mainwindow.mod in ["AXE", "AI"] and type(
                     self.mainwindow.TreeListWidget.currentItem()) == TreeWidgetChild:
                 super().mouseMoveEvent(event)
-                return
 
             if not self.start.isNull() and not self.finish.isNull():
 
@@ -465,24 +654,55 @@ class TabWidget(QGraphicsView):
                 rect = QGraphicsRectItem(start_x, start_y, finish_x, finish_y)
                 self.scene().addItem(rect)
 
-                if self.mainwindow.mod in ['AI', 'AXE'] and event.modifiers() != Qt.AltModifier:
+                if self.mainwindow.mod == "AI" and (event.modifiers() != Qt.AltModifier and event.modifiers() != Qt.ControlModifier):
 
                     if self.rotation not in [90, 270]:
 
-                        circ_rect = QGraphicsRectItem(QRectF(
-                            start_x + (finish_x * 0.15), start_y,
-                            finish_x - (finish_x * 0.3), finish_y
-                        ))
+                        if (self.start.x() > self.finish.x() and self.start.y() < self.finish.y()) or (self.start.x() < self.finish.x() and self.start.y() > self.finish.y()):
+
+                            # Horizontal
+                            circ_rect = QGraphicsRectItem(QRectF(
+                                start_x, start_y + (finish_y * 0.2),
+                                finish_x, finish_y - (finish_y * 0.4)
+                            ))
+
+                            self.ai_rotation = 1
+
+                        else:
+
+                            # Vertical
+                            circ_rect = QGraphicsRectItem(QRectF(
+                                start_x + (finish_x * 0.15), start_y,
+                                finish_x - (finish_x * 0.3), finish_y
+                            ))
+
+                            self.ai_rotation = 2
 
                         circ_rect.setPen(QPen(Qt.red, 2))
                         self.scene().addItem(circ_rect)
 
                     else:
 
-                        circ_rect = QGraphicsRectItem(QRectF(
-                            start_x, start_y + (finish_y * 0.15),
-                            finish_x, finish_y - (finish_y * 0.3)
-                        ))
+                        if (self.start.x() > self.finish.x() and self.start.y() < self.finish.y()) or (
+                                self.start.x() < self.finish.x() and self.start.y() > self.finish.y()):
+
+                            # Horizontal
+                            circ_rect = QGraphicsRectItem(QRectF(
+                                start_x, start_y + (finish_y * 0.2),
+                                finish_x, finish_y - (finish_y * 0.4)
+                            ))
+
+                            self.ai_rotation = 1
+
+                        else:
+
+                            # Vertical
+                            circ_rect = QGraphicsRectItem(QRectF(
+                                start_x + (finish_x * 0.15), start_y,
+                                finish_x - (finish_x * 0.3), finish_y
+                            ))
+
+                            self.ai_rotation = 2
 
                         circ_rect.setPen(QPen(Qt.red, 2))
                         self.scene().addItem(circ_rect)
@@ -521,7 +741,7 @@ class TabWidget(QGraphicsView):
                 self.transform_func.scale(1.2, 1.2)
                 self.setTransform(self.transform_func)
 
-            elif self.mainwindow.mod in ["AXE", "AI"] and event.modifiers() == Qt.AltModifier:
+            elif self.mainwindow.mod in ["AXE", "AI"] and (event.modifiers() == Qt.AltModifier or event.modifiers() == Qt.ControlModifier):
 
                 if self.start == self.finish:
                     self.start = QPoint()
@@ -536,15 +756,17 @@ class TabWidget(QGraphicsView):
 
                 rect = QRectF(start_x, start_y, finish_x, finish_y)
 
-                for item in self.current_el:
+                if event.modifiers() != Qt.ControlModifier:
 
-                    if item.object_name.split('_')[-1] != '1':
-                        pen = QPen()
-                        pen.setColor(QColor("#11ab22"))
-                        pen.setWidth(2)
-                        item.setPen(pen)
+                    for item in self.current_el:
 
-                self.current_el.clear()
+                        if item.object_name.split('_')[-1] != '1':
+                            pen = QPen()
+                            pen.setColor(QColor("#11ab22"))
+                            pen.setWidth(2)
+                            item.setPen(pen)
+
+                    self.current_el.clear()
 
                 [item.set_current(True) for item in self.scene().items(rect) if type(item) in [SimpleRect, SimplePoint]]
 
@@ -559,7 +781,7 @@ class TabWidget(QGraphicsView):
                     return
 
                 try:
-                    dots = self.scene().canvas.pins2json(self.points)
+                    dots = self.scene().canvas.pins2json(self.points, confidence=0.25, rotation=self.ai_rotation)
 
                 except RuntimeWarning:
 
@@ -581,18 +803,44 @@ class TabWidget(QGraphicsView):
                 name = self.mainwindow.TreeListWidget.currentItem().text(0)
 
                 rect = SimpleRect(self.start.x(), self.start.y(), self.finish.x(), self.finish.y(),
-                                  object_name=name, mod=self.mainwindow.mod)
+                                  object_name=name, mod=self.mainwindow.mod, visible_status=self.mainwindow.bodies_status, ai_rotation=self.ai_rotation)
 
                 self.scene().addItem(rect)
 
                 # Add pins
 
                 pins = []
-                for num, point in enumerate(dots):
-                    name = f'{self.mainwindow.TreeListWidget.currentItem().text(0)}_{num + 1}'
-                    pin = SimplePoint(point, object_name=name, visible_status=self.mainwindow.pins_status)
-                    self.scene().addItem(pin)
-                    pins.append(pin)
+                if self.ai_rotation == 2:
+
+                    for num, point in enumerate(dots):
+                        name = f'{self.mainwindow.TreeListWidget.currentItem().text(0)}_{num + 1}'
+                        pin = SimplePoint(point, object_name=name, visible_status=self.mainwindow.pins_status, rotation=self.ai_rotation)
+                        self.scene().addItem(pin)
+                        pins.append(pin)
+
+                else:
+
+                    for num, point in enumerate(dots):
+                        name = f'{self.mainwindow.TreeListWidget.currentItem().text(0)}_{num + 1}'
+
+                        # Transform
+                        temp = point[3]
+                        point[3] = point[2]
+                        point[2] = temp
+
+                        point[0] = point[0] - min(self.start.x(), self.finish.x())
+                        point[1] = point[1] - min(self.start.y(), self.finish.y())
+
+                        temp = point[1]
+                        point[1] = point[0] + min(self.start.y(), self.finish.y())
+                        point[0] = temp + min(self.start.x(), self.finish.x())
+
+                        point[0] += point[3]
+                        point[1] += point[2]
+
+                        pin = SimplePoint(point, object_name=name, visible_status=self.mainwindow.pins_status, rotation=self.ai_rotation)
+                        self.scene().addItem(pin)
+                        pins.append(pin)
 
                 [self.scene().removeItem(it) for it in self.items() if type(it) == QGraphicsRectItem]
                 self.mainwindow.log(f"Placed element: {self.mainwindow.TreeListWidget.currentItem().text(0)}")
@@ -603,7 +851,8 @@ class TabWidget(QGraphicsView):
 
                 if dialog.status:
 
-                    self.mainwindow.next_item(len(dialog.pins))
+                    dialog.pins.append(rect)
+                    self.mainwindow.next_item(dialog.pins)
 
                 else:
 
@@ -619,11 +868,11 @@ class TabWidget(QGraphicsView):
                      type(it) == SimpleRect and it.object_name == name]
 
                     rect = SimpleRect(self.start.x(), self.start.y(), self.finish.x(), self.finish.y(),
-                                      object_name=name, mod=self.mainwindow.mod)
+                                      object_name=name, mod=self.mainwindow.mod, visible_status=self.mainwindow.bodies_status)
 
                     self.scene().addItem(rect)
                     self.mainwindow.log(f"Placed body: {name}")
-                    self.mainwindow.next_item()
+                    self.mainwindow.next_item(rect)
 
                 else:
 
@@ -631,15 +880,18 @@ class TabWidget(QGraphicsView):
                             type(self.mainwindow.TreeListWidget.currentItem()) == TreeWidgetChild:
 
                         first_name = name.split('_')[0]
+                        x = -1
+                        y = -1
 
                         for item in self.scene().items():
                             if isinstance(item, SimplePoint):
                                 if first_name in item.object_name:
                                     width, height = item.rect().width(), item.rect().height()
+                                    x, y = item.rect().x(), item.rect().y()
                                     break
 
                         if 'width' not in locals() and 'height' not in locals():
-                            width, height = [self.sceneRect().width() / 200] * 2
+                            width, height = self.reference_size.width(), self.reference_size.height()
 
                         for it in self.scene().items():
                             if isinstance(it, SimplePoint):
@@ -651,15 +903,36 @@ class TabWidget(QGraphicsView):
                         [self.scene().removeItem(it) for it in self.items() if type(it) == SimplePoint \
                          and it.object_name == name]
 
-                        self.scene().addItem(
-                            SimplePoint((self.finish.x() - (width / 2), self.finish.y() - (height / 2), width, height),
-                                        object_name=name,
-                                        visible_status=self.mainwindow.pins_status))
+                        if x >= 0 and (abs((self.finish.x() - (width / 2)) - x) <= 30) and self.x_alignment:
+                            rect = SimplePoint(
+                                    (x, self.finish.y() - (height / 2), width, height),
+                                    object_name=name,
+                                    visible_status=self.mainwindow.pins_status)
+
+                            self.scene().addItem(rect)
+
+                        elif y >= 0 and (abs((self.finish.y() - (height / 2)) - y) <= 30) and self.y_alignment:
+
+                            rect = SimplePoint(
+                                    (self.finish.x() - (width / 2), y, width, height),
+                                    object_name=name,
+                                    visible_status=self.mainwindow.pins_status)
+
+                            self.scene().addItem(rect)
+
+                        else:
+
+                            rect = SimplePoint(
+                                    (self.finish.x() - (width / 2), self.finish.y() - (height / 2), width, height),
+                                    object_name=name,
+                                    visible_status=self.mainwindow.pins_status)
+
+                            self.scene().addItem(rect)
 
                         [self.scene().removeItem(it) for it in self.items() if type(it) == QGraphicsRectItem]
 
                         self.mainwindow.log(f"Placed point: {name}")
-                        self.mainwindow.next_item()
+                        self.mainwindow.next_item(rect)
 
             elif self.mainwindow.mod == 'CROP':
 
@@ -689,12 +962,20 @@ class TabWidget(QGraphicsView):
                 super().mouseReleaseEvent(_event)
                 event.accept()
                 self.setDragMode(QGraphicsView.NoDrag)
-                if self.blueprint:
+                if self.blueprint and self.blueprint.visible:
                     self.blueprint.setVisible(True)
 
         self.start = QPoint()
         self.finish = QPoint()
         super().mouseReleaseEvent(event)
+
+    def buffer(self, size: QSize):
+
+        self.buffer_size = size
+
+    def reference(self, size: QSize):
+
+        self.reference_size = size
 
     def wheelEvent(self, event) -> None:
         """Мастабирование с помощью колеса мыши внезависимости от режима"""

@@ -20,6 +20,7 @@ class ConfDialog(QDialog):
         self.points = view.points
         self.mainwindow = view.mainwindow
         self.status = True
+        self.ai_rotation = view.ai_rotation
 
         self.grip_position = QPoint(0, 0)
 
@@ -87,7 +88,7 @@ class ConfDialog(QDialog):
         self.pins.clear()
 
         try:
-            dots = self.scene.canvas.pins2json(self.points, confidence=self.ConfSlider.value() / 100)
+            dots = self.scene.canvas.pins2json(self.points, confidence=self.ConfSlider.value() / 100, rotation=self.ai_rotation)
 
         except NonePointError:
             return
@@ -97,7 +98,25 @@ class ConfDialog(QDialog):
 
         for num, point in enumerate(dots):
             name = f'{self.mainwindow.TreeListWidget.currentItem().text(0)}_{num + 1}'
-            pin = SimplePoint(point, object_name=name, visible_status=True)
+
+            if self.ai_rotation == 1:
+
+                # Transform
+                temp = point[3]
+                point[3] = point[2]
+                point[2] = temp
+
+                point[0] = point[0] - min(self.points[0], self.points[2])
+                point[1] = point[1] - min(self.points[1], self.points[3])
+
+                temp = point[1]
+                point[1] = point[0] + min(self.points[1], self.points[3])
+                point[0] = temp + min(self.points[0], self.points[2])
+
+                point[0] += point[3]
+                point[1] += point[2]
+
+            pin = SimplePoint(point, object_name=name, visible_status=True, rotation=self.ai_rotation)
             self.scene.addItem(pin)
             self.pins.append(pin)
 
@@ -109,4 +128,4 @@ class ConfDialog(QDialog):
                      abs(self.points[1] - self.points[3]))
 
         image = self.scene.pixmap.copy(rect)
-        image.save(f"screenshots/{self.points[0], self.points[1], self.points[2], self.points[3]}.png", "PNG")
+        image.save(f"data/screenshots/{self.points[0], self.points[1], self.points[2], self.points[3]}.png", "PNG")

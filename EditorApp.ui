@@ -1454,7 +1454,7 @@ QTreeView::item {
                  </widget>
                 </item>
                 <item row="12" column="1">
-                 <widget class="QPushButton" name="NamesButton">
+                 <widget class="QPushButton" name="BodiesButton">
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                     <horstretch>0</horstretch>
@@ -1694,6 +1694,9 @@ QTreeView::item {
                </property>
                <property name="tabPosition">
                 <enum>QTabWidget::North</enum>
+               </property>
+               <property name="tabShape">
+                <enum>QTabWidget::Rounded</enum>
                </property>
                <property name="currentIndex">
                 <number>0</number>

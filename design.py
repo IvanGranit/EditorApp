@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 
-from custom_widgets import TreeWidgetItem, TreeWidgetChild, TabWidget, GraphicsBlueprintItem
+from custom_widgets import TreeWidgetItem, TreeWidgetChild, TabWidget, GraphicsBlueprintItem, MovableTabs
 from simple_objects import SimpleRect, SimplePoint
 
 from win32api import GetMonitorInfo, MonitorFromPoint
@@ -16,6 +16,8 @@ import glob
 from datetime import datetime
 from ultralytics import YOLO
 from PIL import Image, ImageStat
+
+import logging
 
 
 class UI(QMainWindow):
@@ -33,6 +35,7 @@ class UI(QMainWindow):
         self.dict = None
         self.mod = "AI"
         self.pins_status = True
+        self.bodies_status = True
         self.cur_view = None
         self.bp_view = None
         self.modes_locked = False
@@ -42,6 +45,14 @@ class UI(QMainWindow):
         self.setupUi()
 
     def setupUi(self):
+
+        # Hide previous widgets
+        self.GraphicsTabWidget.hide()
+        self.BlueprintTabWidget.hide()
+
+        # Movable Tab Widgets
+        self.GraphicsTabWidget = MovableTabs(self.GraphicsFrame)
+        self.BlueprintTabWidget = MovableTabs(self.GraphicsFrame)
 
         # Show idle mode until project loaded
         self.GraphicsLogger.clear()
@@ -85,6 +96,7 @@ class UI(QMainWindow):
         self.LoadButton.clicked.connect(self.load_project)
         self.SaveButton.clicked.connect(self.save_project)
         self.PinsButton.clicked.connect(self.pins_status_change)
+        self.BodiesButton.clicked.connect(self.bodies_status_change)
         self.RotateButton.clicked.connect(self.view_rotation)
         self.MirrorYButton.clicked.connect(self.reflect_y)
         self.MirrorXButton.clicked.connect(self.reflect_x)
@@ -97,6 +109,9 @@ class UI(QMainWindow):
 
         # Change parent (Qt Designer issue)
         self.verticalLayout_7.setAlignment(Qt.AlignBottom)
+        self.verticalLayout_7.addWidget(self.BlueprintTabWidget)
+        self.verticalLayout_7.addWidget(self.TabResizeFrame)
+        self.verticalLayout_7.addWidget(self.GraphicsTabWidget)
         self.verticalLayout_7.addWidget(self.GraphicsLoggerFrame)
 
         # Connect navigation buttons
@@ -158,6 +173,9 @@ class UI(QMainWindow):
             except UnicodeDecodeError:
                 self.log("Codec can't decode Points (Project may be corrupted)")
                 return
+
+            except json.decoder.JSONDecodeError:
+                self.log("Extra data JSONDecodeError")
 
         else:
             self.log("Canceled project loading")
@@ -266,7 +284,7 @@ class UI(QMainWindow):
         self.CropButton.hide()
         self.ZoomButton.hide()
         self.PinsButton.hide()
-        self.NamesButton.hide()
+        self.BodiesButton.hide()
 
     def go_work(self):
 
@@ -290,7 +308,7 @@ class UI(QMainWindow):
         self.CropButton.show()
         self.ZoomButton.show()
         self.PinsButton.show()
-        self.NamesButton.show()
+        self.BodiesButton.show()
 
     def save_project(self):
 
@@ -452,6 +470,16 @@ class UI(QMainWindow):
 
         self.log(f"Points visibility set to {self.pins_status}")
 
+    def bodies_status_change(self):
+
+        self.bodies_status = not self.bodies_status
+
+        for view in (self.GraphicsTabWidget.findChildren(TabWidget) + self.BlueprintTabWidget.findChildren(TabWidget)):
+
+            [item.setVisible(self.bodies_status) for item in view.scene().items() if type(item) == SimpleRect]
+
+        self.log(f"Bodies visibility set to {self.bodies_status}")
+
     def view_rotation(self):
 
         if self.cur_view:
@@ -523,7 +551,21 @@ class UI(QMainWindow):
             self.bp_view.blueprint.setOpacity(self.OpacityBox.value() / 100)
             self.BLButton.setText(self.bp_view.blueprint.path.split('\\')[-1])
             self.bp_view.scene().addItem(self.bp_view.blueprint)
+
+            if self.bp_view.blueprint.pixmap.height() > self.bp_view.scene().height():
+                self.bp_view.blueprint.pixmap = self.bp_view.blueprint.pixmap.scaledToHeight(int(self.bp_view.scene().height()))
+                self.bp_view.blueprint.setPixmap(self.bp_view.blueprint.pixmap)
+                self.bp_view.blueprint.update_anchors()
+
+            if self.bp_view.blueprint.pixmap.width() > self.bp_view.scene().width():
+                self.bp_view.blueprint.pixmap = self.bp_view.blueprint.pixmap.scaledToWidth(int(self.bp_view.scene().width()))
+                self.bp_view.blueprint.setPixmap(self.bp_view.blueprint.pixmap)
+                self.bp_view.blueprint.update_anchors()
+
+            self.bp_view.blueprint.image = self.bp_view.blueprint.pixmap.toImage()
+
             self.OpacityBox.setReadOnly(False)
+            self.BLVisibleButton.setIcon(QIcon("src/icons/free/eye.svg"))
 
     def bp_visible(self):
 
@@ -534,11 +576,13 @@ class UI(QMainWindow):
         if self.bp_view.blueprint.isVisible():
 
             self.bp_view.blueprint.setVisible(False)
+            self.bp_view.blueprint.visible = False
             self.BLVisibleButton.setIcon(QIcon("src/icons/free/eye-off.svg"))
 
         else:
 
             self.bp_view.blueprint.setVisible(True)
+            self.bp_view.blueprint.visible = True
             self.BLVisibleButton.setIcon(QIcon("src/icons/free/eye.svg"))
 
     def change_curview(self):
@@ -578,23 +622,25 @@ class UI(QMainWindow):
             self.OpacityBox.setReadOnly(True)
             self.OpacityBox.setValue(30)
 
-    def next_item(self, count=0):
+    def next_item(self, count):
 
         if self.mod == "AI":
 
             self.TreeListWidget.currentItem().change_status(True)
+            self.TreeListWidget.currentItem().graphic = count[len(count) - 1]
 
-            for index in range(0, count):
+            for index in range(0, len(count)):
 
                 try:
 
                     self.TreeListWidget.currentItem().child(index).change_status(True)
+                    self.TreeListWidget.currentItem().child(index).graphic = count[index]
 
                 except AttributeError:
 
                     break
 
-            if self.TreeListWidget.currentItem().childCount() <= count:
+            if self.TreeListWidget.currentItem().childCount() <= len(count):
 
                 self.TreeListWidget.currentItem().setExpanded(False)
                 next_item = self.TreeListWidget.topLevelItem(self.TreeListWidget.currentIndex().row() + 1)
@@ -602,7 +648,7 @@ class UI(QMainWindow):
 
             else:
 
-                last_item = self.TreeListWidget.currentItem().child(count)
+                last_item = self.TreeListWidget.currentItem().child(len(count))
                 self.TreeListWidget.setCurrentItem(last_item)
 
                 self.log("Current element was incompletely labeled, changing the mode...")
@@ -613,6 +659,7 @@ class UI(QMainWindow):
             if type(self.TreeListWidget.currentItem()) == TreeWidgetItem:
 
                 self.TreeListWidget.currentItem().change_status(True)
+                self.TreeListWidget.currentItem().graphic = count
 
                 if self.TreeListWidget.currentItem().child(0):
 
@@ -631,12 +678,14 @@ class UI(QMainWindow):
 
                 if item.parent().child(item_index + 1):
 
-                    self.TreeListWidget.currentItem().change_status(True)
+                    item.change_status(True)
+                    item.graphic = count
                     self.TreeListWidget.setCurrentItem(item.parent().child(item_index + 1))
 
                 else:
 
-                    self.TreeListWidget.currentItem().change_status(True)
+                    item.change_status(True)
+                    item.graphic = count
                     self.TreeListWidget.currentItem().parent().setExpanded(False)
 
                     self.TreeListWidget.setCurrentItem(item.parent())
@@ -650,6 +699,8 @@ class UI(QMainWindow):
 if __name__ == '__main__':
 
     multiprocessing.freeze_support()
+
+    logging.basicConfig(level=logging.WARNING, format="%(asctime)s %(levelname)s %(message)s", datefmt="%Y-%m-%d %H:%M:%S", filename=f"logs/{datetime.now().date()}.log")
 
     model = YOLO('data/best.pt', task='predict')
     model.cfg = "ultralytics/cfg/default.yaml"

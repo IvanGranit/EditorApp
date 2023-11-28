@@ -21,7 +21,7 @@ class Canvas:
         img = Image.open(path)
 
         if rotation != 0:
-            img.rotate(90)
+            img.rotate(rotation)
 
         if flip:
             img.transpose(Image.FLIP_TOP_BOTTOM)
@@ -42,7 +42,7 @@ class Canvas:
         else:
             return None
 
-    def pins2json(self, coordinates: np.array, confidence=0.25):
+    def pins2json(self, coordinates: np.array, confidence=0.25, rotation=2):
         """Функция генерации координат пинов.
 
         На выходе создается отсортированный массив вида:
@@ -57,9 +57,16 @@ class Canvas:
 
         # Coordinates: 1 - horizontal min, 2 - vertical min, 3 - horizontal max, 4 - vertical max
         y1, x1, y2, x2 = coordinates
-        middle = abs((y1 - y2) / 2) + min(y1, y2)
+
+        middle = abs((y1 - y2) / 2)
+
+        middle += min(y1, y2)
 
         crop_img = self.image[min(x1, x2):max(x1, x2), min(y1, y2):max(y1, y2), :]
+
+        if rotation == 1:
+            crop_img = np.rot90(crop_img, 1)
+
         #   Сохраняем исходные размерности изображения
         # width, height = crop_img.shape[:2]
 
@@ -92,9 +99,19 @@ class Canvas:
             rectangles = sorted(bboxes[bboxes[:, 0] > middle], key=lambda x: x[1], reverse=True) + \
                          sorted(bboxes[bboxes[:, 0] < middle], key=lambda x: x[1])
 
-        #   Мод = 'lt'
+        # Мод = 'lt'
         if x1 < x2 and y1 < y2:
             rectangles = sorted(bboxes[bboxes[:, 0] < middle], key=lambda x: x[1]) + \
                          sorted(bboxes[bboxes[:, 0] > middle], key=lambda x: x[1], reverse=True)
+
+        # Мод = 'rt'
+        if x1 < x2 and y1 > y2:
+            rectangles = sorted(bboxes[bboxes[:, 0] < middle], key=lambda x: x[1], reverse=True) + \
+                         sorted(bboxes[bboxes[:, 0] > middle], key=lambda x: x[1])
+
+        # Мод = 'lb'
+        if x1 > x2 and y1 < y2:
+            rectangles = sorted(bboxes[bboxes[:, 0] > middle], key=lambda x: x[1]) + \
+                         sorted(bboxes[bboxes[:, 0] < middle], key=lambda x: x[1], reverse=True)
 
         return rectangles
