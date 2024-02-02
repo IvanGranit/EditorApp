@@ -1027,7 +1027,7 @@ QTreeView::item {
                   </property>
                  </widget>
                 </item>
-                <item row="2" column="1">
+                <item row="4" column="1">
                  <widget class="Line" name="ProjectLine">
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -1052,7 +1052,7 @@ QTreeView::item {
                   </property>
                  </widget>
                 </item>
-                <item row="3" column="1">
+                <item row="5" column="1">
                  <widget class="QPushButton" name="AIButton">
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -1080,7 +1080,7 @@ QTreeView::item {
                   </property>
                   <property name="icon">
                    <iconset>
-                    <normaloff>src/icons/free/alert-circle.svg</normaloff>src/icons/free/alert-circle.svg</iconset>
+                    <normaloff>src/icons/free/ai.png</normaloff>src/icons/free/ai.png</iconset>
                   </property>
                   <property name="iconSize">
                    <size>
@@ -1093,7 +1093,7 @@ QTreeView::item {
                   </property>
                  </widget>
                 </item>
-                <item row="4" column="1">
+                <item row="6" column="1">
                  <widget class="QPushButton" name="AXEButton">
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -1121,7 +1121,7 @@ QTreeView::item {
                   </property>
                   <property name="icon">
                    <iconset>
-                    <normaloff>src/icons/free/alert-circle.svg</normaloff>src/icons/free/alert-circle.svg</iconset>
+                    <normaloff>src/icons/free/axe.png</normaloff>src/icons/free/axe.png</iconset>
                   </property>
                   <property name="iconSize">
                    <size>
@@ -1134,7 +1134,7 @@ QTreeView::item {
                   </property>
                  </widget>
                 </item>
-                <item row="5" column="1">
+                <item row="7" column="1">
                  <widget class="QPushButton" name="MOVEButton">
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -1162,7 +1162,7 @@ QTreeView::item {
                   </property>
                   <property name="icon">
                    <iconset>
-                    <normaloff>src/icons/free/alert-circle.svg</normaloff>src/icons/free/alert-circle.svg</iconset>
+                    <normaloff>src/icons/free/std.png</normaloff>src/icons/free/std.png</iconset>
                   </property>
                   <property name="iconSize">
                    <size>
@@ -1175,7 +1175,7 @@ QTreeView::item {
                   </property>
                  </widget>
                 </item>
-                <item row="6" column="0">
+                <item row="8" column="0">
                  <widget class="Line" name="ToolsLine">
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -1200,7 +1200,7 @@ QTreeView::item {
                   </property>
                  </widget>
                 </item>
-                <item row="6" column="1">
+                <item row="8" column="1">
                  <widget class="QPushButton" name="RotateButton">
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -1238,7 +1238,7 @@ QTreeView::item {
                   </property>
                  </widget>
                 </item>
-                <item row="7" column="1">
+                <item row="9" column="1">
                  <widget class="QPushButton" name="MirrorYButton">
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -1276,7 +1276,7 @@ QTreeView::item {
                   </property>
                  </widget>
                 </item>
-                <item row="8" column="1">
+                <item row="10" column="1">
                  <widget class="QPushButton" name="MirrorXButton">
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -1314,7 +1314,7 @@ QTreeView::item {
                   </property>
                  </widget>
                 </item>
-                <item row="9" column="1">
+                <item row="11" column="1">
                  <widget class="QPushButton" name="CropButton">
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -1352,7 +1352,7 @@ QTreeView::item {
                   </property>
                  </widget>
                 </item>
-                <item row="10" column="1">
+                <item row="12" column="1">
                  <widget class="QPushButton" name="ZoomButton">
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -1390,7 +1390,7 @@ QTreeView::item {
                   </property>
                  </widget>
                 </item>
-                <item row="11" column="0">
+                <item row="13" column="0">
                  <widget class="Line" name="ImageLine">
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -1415,7 +1415,7 @@ QTreeView::item {
                   </property>
                  </widget>
                 </item>
-                <item row="11" column="1">
+                <item row="13" column="1">
                  <widget class="QPushButton" name="PinsButton">
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -1453,7 +1453,7 @@ QTreeView::item {
                   </property>
                  </widget>
                 </item>
-                <item row="12" column="1">
+                <item row="14" column="1">
                  <widget class="QPushButton" name="BodiesButton">
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -1482,6 +1482,54 @@ QTreeView::item {
                   <property name="icon">
                    <iconset>
                     <normaloff>src/icons/free/alert-octagon.svg</normaloff>src/icons/free/alert-octagon.svg</iconset>
+                  </property>
+                  <property name="iconSize">
+                   <size>
+                    <width>30</width>
+                    <height>30</height>
+                   </size>
+                  </property>
+                 </widget>
+                </item>
+                <item row="2" column="1">
+                 <widget class="Line" name="AutoLine">
+                  <property name="minimumSize">
+                   <size>
+                    <width>40</width>
+                    <height>1</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>40</width>
+                    <height>1</height>
+                   </size>
+                  </property>
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                 </widget>
+                </item>
+                <item row="3" column="1">
+                 <widget class="QPushButton" name="AutoSBButton">
+                  <property name="minimumSize">
+                   <size>
+                    <width>40</width>
+                    <height>40</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>40</width>
+                    <height>40</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string/>
+                  </property>
+                  <property name="icon">
+                   <iconset>
+                    <normaloff>src/icons/free/search.svg</normaloff>src/icons/free/search.svg</iconset>
                   </property>
                   <property name="iconSize">
                    <size>

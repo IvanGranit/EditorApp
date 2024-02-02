@@ -7,10 +7,12 @@ from errors import NonePointError
 from simple_objects import SimplePoint
 import glob
 
+from graphic_func import rotate_rect
+
 
 class ConfDialog(QDialog):
 
-    def __init__(self, pins, view):
+    def __init__(self, pins, parent_rect, view):
 
         super(ConfDialog, self).__init__()
         uic.loadUi('ConfDialog.ui', self)
@@ -19,6 +21,7 @@ class ConfDialog(QDialog):
         self.scene = view.scene()
         self.points = view.points
         self.mainwindow = view.mainwindow
+        self.rect = parent_rect
         self.status = True
         self.ai_rotation = view.ai_rotation
 
@@ -30,6 +33,7 @@ class ConfDialog(QDialog):
 
         # Set starting position
         self.ConfSlider.setValue(25)
+        self.ConfSlider.setMinimum(1)
         self.ConfSpinBox.setValue(25)
 
         # Show pins
@@ -83,6 +87,7 @@ class ConfDialog(QDialog):
         self.ConfSpinBox.setValue(self.ConfSlider.value())
 
         for pin in self.pins:
+
             self.scene.removeItem(pin)
 
         self.pins.clear()
@@ -99,24 +104,17 @@ class ConfDialog(QDialog):
         for num, point in enumerate(dots):
             name = f'{self.mainwindow.TreeListWidget.currentItem().text(0)}_{num + 1}'
 
+            pin = SimplePoint(point, object_name=name, visible_status=True, rotation=self.ai_rotation)
+
             if self.ai_rotation == 1:
 
-                # Transform
-                temp = point[3]
-                point[3] = point[2]
-                point[2] = temp
+                c = QPointF(
+                    abs(self.rect.rect().x() + (self.rect.rect().width() / 2)),
+                    abs(self.rect.rect().y() + (self.rect.rect().height() / 2))
+                )
 
-                point[0] = point[0] - min(self.points[0], self.points[2])
-                point[1] = point[1] - min(self.points[1], self.points[3])
+                pin.setRect(rotate_rect(pin.rect(), c, 90))
 
-                temp = point[1]
-                point[1] = point[0] + min(self.points[1], self.points[3])
-                point[0] = temp + min(self.points[0], self.points[2])
-
-                point[0] += point[3]
-                point[1] += point[2]
-
-            pin = SimplePoint(point, object_name=name, visible_status=True, rotation=self.ai_rotation)
             self.scene.addItem(pin)
             self.pins.append(pin)
 

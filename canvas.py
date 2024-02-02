@@ -65,18 +65,8 @@ class Canvas:
         crop_img = self.image[min(x1, x2):max(x1, x2), min(y1, y2):max(y1, y2), :]
 
         if rotation == 1:
-            crop_img = np.rot90(crop_img, 1)
 
-        #   Сохраняем исходные размерности изображения
-        # width, height = crop_img.shape[:2]
-
-        #   Так как нейронная сеть работает с изображениями 256х256, изменяем размерность изображения
-        # crop_img = cv2.resize(crop_img, (256, 256))
-
-        #   Определяем коэффициенты для корректировки итоговых координат пинов
-        # kx, ky = width / 256, height / 256
-
-        #   Сегментируем изобраэжение
+            crop_img = np.rot90(crop_img)
 
         bboxes = self.model.predict(crop_img, iou=0.001, conf=confidence)[0].boxes.xywh.numpy()
 
@@ -85,8 +75,8 @@ class Canvas:
         bboxes[:, 1] = bboxes[:, 1] - bboxes[:, 3] // 2 + min(x1, x2)
         bboxes[:, 3] = bboxes[:, 3]
 
-        avg_width = int(bboxes[:, 2].mean())
-        avg_height = int(bboxes[:, 3].mean())
+        avg_width = bboxes[:, 2].mean()
+        avg_height = bboxes[:, 3].mean()
         avg_left = bboxes[bboxes[:, 0] < middle][:, 0].mean()
         avg_right = bboxes[bboxes[:, 0] > middle][:, 0].mean()
 
@@ -106,12 +96,12 @@ class Canvas:
 
         # Мод = 'rt'
         if x1 < x2 and y1 > y2:
-            rectangles = sorted(bboxes[bboxes[:, 0] < middle], key=lambda x: x[1], reverse=True) + \
-                         sorted(bboxes[bboxes[:, 0] > middle], key=lambda x: x[1])
+            rectangles = sorted(bboxes[bboxes[:, 0] > middle], key=lambda x: x[1], reverse=True) + \
+                         sorted(bboxes[bboxes[:, 0] < middle], key=lambda x: x[1])
 
         # Мод = 'lb'
         if x1 > x2 and y1 < y2:
-            rectangles = sorted(bboxes[bboxes[:, 0] > middle], key=lambda x: x[1]) + \
-                         sorted(bboxes[bboxes[:, 0] < middle], key=lambda x: x[1], reverse=True)
+            rectangles = sorted(bboxes[bboxes[:, 0] < middle], key=lambda x: x[1]) + \
+                         sorted(bboxes[bboxes[:, 0] > middle], key=lambda x: x[1], reverse=True)
 
         return rectangles

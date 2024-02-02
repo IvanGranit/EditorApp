@@ -38,8 +38,8 @@ class SimpleRect(QGraphicsRectItem):
                 ))
             else:
                 self.setRect(self.rect().adjusted(
-                    0, self.rect().height() * 0.2,
-                    0, self.rect().height() * -0.2
+                    0, self.rect().height() * 0.15,
+                    0, self.rect().height() * -0.15
                 ))
 
         self.setAcceptHoverEvents(True)
@@ -265,7 +265,7 @@ class SimplePoint(QGraphicsRectItem):
 
         else:
 
-            pen.setColor(QColor("#11ab22"))
+            pen.setColor(QColor("#11AB22"))
 
         pen.setWidth(2)
         self.setPen(pen)
@@ -325,6 +325,7 @@ class SimplePoint(QGraphicsRectItem):
             "right": [QRectF(self.boundingRect().x() + self.boundingRect().width() - 2, self.boundingRect().y() + 2, 2, self.boundingRect().height() - 4), Qt.SizeHorCursor],
             "bottom": [QRectF(self.boundingRect().x() + 2, self.boundingRect().y() + self.boundingRect().height() - 2, self.boundingRect().width() - 4, 2), Qt.SizeVerCursor],
         }
+
         x, y = pos.x(), pos.y()
 
         if anchor.location == "left":
@@ -509,19 +510,23 @@ class SimplePoint(QGraphicsRectItem):
 
         if event.buttons() == Qt.LeftButton:
 
-            if event.modifiers() == Qt.ControlModifier:
-                self.set_current(True)
-            else:
-                self.set_current()
+            # if event.modifiers() == Qt.ControlModifier:
+            #     self.set_current(True)
+            # else:
+            #     self.set_current()
 
             self.dx, self.dy = event.scenePos().x() - self.rect().x(), event.scenePos().y() - self.rect().y()
+            self.old_x , self.old_y = self.rect().x(), self.rect().y()
             event.accept()
 
     def mouseMoveEvent(self, event):
 
         if event.buttons() == Qt.LeftButton:
 
-            self.setRect(event.scenePos().x() - self.dx, event.scenePos().y() - self.dy, self.rect().width(),
+            old_x, old_y = self.rect().x(), self.rect().y()
+            new_x, new_y = event.scenePos().x() - self.dx, event.scenePos().y() - self.dy
+
+            self.setRect(new_x, new_y, self.rect().width(),
                          self.rect().height())
 
             [item.setPos(
@@ -530,7 +535,12 @@ class SimplePoint(QGraphicsRectItem):
             ) for item in self.scene().items() if isinstance(item, SL)]
             event.accept()
 
+            if len(self.scene().parent().current_el) > 1:
+
+                self.scene().parent().move_selected(new_x - old_x, new_y - old_y, self)
+
             self.update_anchors()
+            print(f"dx: {self.rect().x() - self.old_x}; dy: {self.rect().y() - self.old_y};")
 
 
 class SL(QGraphicsSimpleTextItem):
@@ -585,6 +595,7 @@ class CropItem(QGraphicsPathItem):
         self.create_path()
 
     def create_path(self):
+
         self._path = QPainterPath()
         self._path.addRect(self.extern_rect)
         self._path.moveTo(self.intern_rect.topLeft())

@@ -11,8 +11,13 @@ from canvas import Canvas
 
 import logging
 from datetime import datetime
+from preparation_v2 import preparate
+from ultralytics import YOLO
+
+from graphic_func import rotate_rect
 
 logging.basicConfig(level=logging.WARNING, format="%(asctime)s %(levelname)s %(message)s", datefmt="%Y-%m-%d %H:%M:%S", filename=f"logs/{datetime.now().date()}.log")
+model2 = YOLO("./segmentator.pt")
 
 
 class MovableTabs(QTabWidget):
@@ -104,8 +109,8 @@ class TreeWidgetItem(QTreeWidgetItem):
         super().__init__()
 
         self.widget = QWidget()
-        self.widget.setFixedSize(200, 20)
-        self.setSizeHint(0, QSize(200, 20))
+        self.widget.setFixedSize(200, 30)
+        self.setSizeHint(0, QSize(200, 30))
 
         self.name = el
         self.type = el_type
@@ -119,27 +124,48 @@ class TreeWidgetItem(QTreeWidgetItem):
         layout.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 
         self.el_label = ELLabel(self.name)
-        self.el_label.setFixedSize(80, 20)
+        self.el_label.setFixedSize(80, 30)
 
         self.el_type_label = ELTypeLabel(self.type)
-        self.el_type_label.setFixedSize(120, 20)
+        self.el_type_label.setFixedSize(120, 30)
 
         layout.addWidget(self.el_label)
         layout.addWidget(self.el_type_label)
 
         self.widget.setLayout(layout)
 
+        self.b = None
+        self.d = None
+        self.k = None
+
     def change_status(self, status: bool):
 
-        if status:
+        self.status = status
 
-            self.status = True
+        if self.status:
+
             self.el_label.setText(self.name + " ✓")
 
         else:
 
-            self.status = False
             self.el_label.setText(self.name)
+
+    def getSBData(self) -> tuple:
+        """ (0) body, (1) designator, (2) key """
+
+        return self.b, self.d, self.k
+
+    def setSBData(self, listWidget, children: list) -> None:
+        """ [0] body, [1] designator, [2] key """
+
+        for child in children:
+
+            self.addChild(child)
+            listWidget.setItemWidget(child, 0, child.widget)
+
+        self.b, self.d, self.k = children
+
+        return
 
 
 class TreeWidgetChild(QTreeWidgetItem):
@@ -156,15 +182,67 @@ class TreeWidgetChild(QTreeWidgetItem):
 
     def change_status(self, status: bool):
 
-        if status:
+        self.status = status
 
-            self.status = True
+        if self.status:
+
             self.setText(0, self.name + " ✓")
 
         else:
 
-            self.status = False
             self.setText(0, self.name)
+
+
+class TreeWidgetDescription(QTreeWidgetItem):
+
+    def __init__(self, text: str, status: int = 0):
+        
+        super().__init__()
+
+        # Status: 0 - unlabeled; 1 - not found; 2 - labeled;
+
+        self.status = status
+        self.parameter = text
+
+        self.setSizeHint(0, QSize(200, 20))
+
+        self.widget = QWidget()
+        self.widget.setFixedSize(200, 20)
+
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        layout.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+
+        self.label = QLabel(self.parameter)
+        self.label.setFixedSize(200, 20)
+        self.label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+
+        layout.addWidget(self.label)
+
+        self.widget.setLayout(layout)
+
+        self.changeStatus(self.status)
+
+    def changeStatus(self, status: int = 0) -> None:
+
+        if not 0 <= self.status <= 2:
+
+            return
+
+        self.status = status
+
+        if status == 0:
+
+            self.label.setText(f'<font color = "#b1b1b1">{self.parameter}:</font> <font color="gray">Unlabeled</font>')
+
+        elif status == 1:
+
+            self.label.setText(f'<font color = "#b1b1b1">{self.parameter}:</font> <font color="red">Not found</font>')
+
+        elif status == 2:
+
+            self.label.setText(f'<font color = "#b1b1b1">{self.parameter}:</font> <font color="green">Labeled</font>')
 
 
 class ELLabel(QLabel):
@@ -499,8 +577,6 @@ class TabWidget(QGraphicsView):
 
                 logging.critical(f"{type(ex)}; Wrong item delete event; widget: {type(self)}; py: {ex}")
 
-
-
         self.current_el.clear()
 
         if event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_T and self.blueprint:
@@ -518,6 +594,106 @@ class TabWidget(QGraphicsView):
 
                 self.blueprint.setAdjustable(False)
 
+        if event.key() == Qt.Key_L:
+
+            self.detect()
+
+    def detect(self):
+
+        import json
+        import os
+
+        scene = self.scene()
+
+        # Blueprint recognition
+        if os.path.exists(
+                f"{self.scene().canvas.path.removesuffix('.' + self.scene().canvas.path.split('.')[-1])}.json"):
+
+            with open(f"{self.scene().canvas.path.removesuffix('.' + self.scene().canvas.path.split('.')[-1])}.json",
+                      'r') as ff:
+
+                rects = json.loads(ff.read())
+
+        else:
+
+            rects = preparate(self.scene().canvas.path)
+            tab_widget = self.mainwindow.add_image(
+                self.scene().canvas.path.removesuffix(self.scene().canvas.path.split('\\')[-1]) + 'cropped_' +
+                self.scene().canvas.path.split('\\')[-1])
+            scene = tab_widget.scene()
+
+        self.unpack_rects(rects, scene)
+
+    def unpack_rects(self, rects, scene):
+
+        for point in rects['shapes']:
+            coord = point['points']
+
+            rect_f = QRectF(
+
+                coord[0][0],
+                coord[0][1],
+                abs(coord[0][0] - coord[1][0]),
+                abs(coord[0][1] - coord[1][1])
+
+            )
+
+            try:
+
+                name = point['label'].split('-')[-1]
+
+            except IndexError:
+
+                continue
+
+            try:
+
+                item = self.mainwindow.TreeListWidget.findItems(point['label'].split('-')[-1].upper(), Qt.MatchExactly, 0)[0]
+
+            except IndexError:
+
+                continue
+
+            if point['shape_type'] == 'rectangle':
+
+                rect = SimpleRect(x_start=rect_f.x(),
+                                  y_start=rect_f.y(),
+                                  x_finish=rect_f.width() + rect_f.x(),
+                                  y_finish=rect_f.height() + rect_f.y(),
+                                  object_name=point['label'],
+                                  mod='AXE')
+
+                if point['description'] == 'micro':
+
+                    scene.addItem(rect)
+
+                    if item:
+
+                        item.child(0).changeStatus(2)
+
+                elif point['description'] == 'text on micro':
+
+                    scene.addItem(rect)
+
+                    if item:
+
+                        item.child(1).changeStatus(2)
+
+            if point['shape_type'] == 'circle':
+
+                ellipse = SimpleRect(x_start=rect_f.x(),
+                                     y_start=rect_f.y(),
+                                     x_finish=rect_f.width() + rect_f.x(),
+                                     y_finish=rect_f.height() + rect_f.y(),
+                                     object_name=point['label'],
+                                     mod='AXE')
+
+                scene.addItem(ellipse)
+
+                if item:
+
+                    item.child(2).changeStatus(2)
+
     def resize_selected(self, size: QSizeF):
 
         for el in self.current_el:
@@ -525,6 +701,15 @@ class TabWidget(QGraphicsView):
             if type(el) == SimplePoint:
 
                 el.setRect(el.rect().x(), el.rect().y(), size.width(), size.height())
+                el.update_anchors()
+
+    def move_selected(self, x, y, ex: QGraphicsRectItem):
+
+        for el in self.current_el:
+
+            if type(el) == SimplePoint and el != ex:
+
+                el.setRect(el.rect().x() + x, el.rect().y() + y, el.rect().width(), el.rect().height())
                 el.update_anchors()
 
     def align_horizontal(self, x):
@@ -561,6 +746,7 @@ class TabWidget(QGraphicsView):
             self.finish = self.start
 
         self.mainwindow.cur_view = self
+        self.mainwindow.check_items()
 
         if type(self.itemAt(event.pos())) in [QGraphicsPixmapItem, GraphicsBlueprintItem]:
 
@@ -662,8 +848,8 @@ class TabWidget(QGraphicsView):
 
                             # Horizontal
                             circ_rect = QGraphicsRectItem(QRectF(
-                                start_x, start_y + (finish_y * 0.2),
-                                finish_x, finish_y - (finish_y * 0.4)
+                                start_x, start_y + (finish_y * 0.15),
+                                finish_x, finish_y - (finish_y * 0.3)
                             ))
 
                             self.ai_rotation = 1
@@ -688,8 +874,8 @@ class TabWidget(QGraphicsView):
 
                             # Horizontal
                             circ_rect = QGraphicsRectItem(QRectF(
-                                start_x, start_y + (finish_y * 0.2),
-                                finish_x, finish_y - (finish_y * 0.4)
+                                start_x, start_y + (finish_y * 0.15),
+                                finish_x, finish_y - (finish_y * 0.3)
                             ))
 
                             self.ai_rotation = 1
@@ -744,6 +930,7 @@ class TabWidget(QGraphicsView):
             elif self.mainwindow.mod in ["AXE", "AI"] and (event.modifiers() == Qt.AltModifier or event.modifiers() == Qt.ControlModifier):
 
                 if self.start == self.finish:
+
                     self.start = QPoint()
                     self.finish = QPoint()
 
@@ -762,7 +949,7 @@ class TabWidget(QGraphicsView):
 
                         if item.object_name.split('_')[-1] != '1':
                             pen = QPen()
-                            pen.setColor(QColor("#11ab22"))
+                            pen.setColor(QColor("#11AB22"))
                             pen.setWidth(2)
                             item.setPen(pen)
 
@@ -823,29 +1010,22 @@ class TabWidget(QGraphicsView):
                     for num, point in enumerate(dots):
                         name = f'{self.mainwindow.TreeListWidget.currentItem().text(0)}_{num + 1}'
 
-                        # Transform
-                        temp = point[3]
-                        point[3] = point[2]
-                        point[2] = temp
-
-                        point[0] = point[0] - min(self.start.x(), self.finish.x())
-                        point[1] = point[1] - min(self.start.y(), self.finish.y())
-
-                        temp = point[1]
-                        point[1] = point[0] + min(self.start.y(), self.finish.y())
-                        point[0] = temp + min(self.start.x(), self.finish.x())
-
-                        point[0] += point[3]
-                        point[1] += point[2]
-
                         pin = SimplePoint(point, object_name=name, visible_status=self.mainwindow.pins_status, rotation=self.ai_rotation)
+
+                        c = QPointF(
+                            abs(rect.rect().x() + (rect.rect().width() / 2)),
+                            abs(rect.rect().y() + (rect.rect().height() / 2))
+                        )
+
+                        pin.setRect(rotate_rect(pin.rect(), c, 90))
+
                         self.scene().addItem(pin)
                         pins.append(pin)
 
                 [self.scene().removeItem(it) for it in self.items() if type(it) == QGraphicsRectItem]
                 self.mainwindow.log(f"Placed element: {self.mainwindow.TreeListWidget.currentItem().text(0)}")
 
-                dialog = ConfDialog(pins=pins, view=self)
+                dialog = ConfDialog(pins=pins, parent_rect=rect, view=self)
                 dialog.move(self.mapToGlobal(QPoint(self.pos().x(), self.pos().y())))
                 dialog.exec()
 

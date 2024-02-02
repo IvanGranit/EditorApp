@@ -5,8 +5,8 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 
-from custom_widgets import TreeWidgetItem, TreeWidgetChild, TabWidget, GraphicsBlueprintItem, MovableTabs
-from simple_objects import SimpleRect, SimplePoint
+from custom_widgets import *
+from simple_objects import *
 
 from win32api import GetMonitorInfo, MonitorFromPoint
 
@@ -28,7 +28,7 @@ class UI(QMainWindow):
         uic.loadUi('EditorApp.ui', self)
 
         self.animation = QPropertyAnimation(self, b'geometry')
-        self.animation.setEasingCurve(QEasingCurve.Linear)
+        self.animation.setEasingCurve(QEasingCurve.Custom)
 
         # Properties
         self.dirlist = None
@@ -90,6 +90,7 @@ class UI(QMainWindow):
         self.AIButton.clicked.connect(lambda: self.change_mode("AI"))
         self.AXEButton.clicked.connect(lambda: self.change_mode("AXE"))
         self.MOVEButton.clicked.connect(lambda: self.change_mode("STD"))
+        self.AutoSBButton.clicked.connect(lambda:  self.BP_Auto_Detect())
         self.ZoomButton.clicked.connect(lambda: self.change_mode("ZOOM"))
         self.CropButton.clicked.connect(lambda: self.change_mode("CROP"))
         self.LogButton.clicked.connect(lambda: self.GraphicsLoggerFrame.setHidden(not self.GraphicsLoggerFrame.isHidden()))
@@ -126,6 +127,12 @@ class UI(QMainWindow):
 
         # Log opening
         self.log("App opened")
+
+    def BP_Auto_Detect(self):
+
+        if self.cur_view.parent().parent() == self.BlueprintTabWidget:
+
+            self.cur_view.detect()
 
     def resizeEvent(self, event):
 
@@ -200,9 +207,12 @@ class UI(QMainWindow):
                 self.TreeListWidget.addTopLevelItem(item)
                 self.TreeListWidget.setItemWidget(item, 0, item.widget)
 
+                SBData = [TreeWidgetDescription('Body', 0), TreeWidgetDescription('Designator', 0), TreeWidgetDescription('Key', 0)]
+
+                item.setSBData(self.TreeListWidget, SBData)
+
                 for pin in self.dict['Elements'][el]['Pins'].keys():
                     pin_item = TreeWidgetChild(pin)
-
                     item.addChild(pin_item)
 
             grayscale = None
@@ -210,6 +220,10 @@ class UI(QMainWindow):
 
             # Add image tab
             for file in glob.glob(self.dirlist + r'\Виды\*'):
+
+                if file.split('.')[-1] not in ['png', 'jpg']:
+
+                    continue
 
                 tab_widget = TabWidget(file, model, self)
 
@@ -258,6 +272,14 @@ class UI(QMainWindow):
             # Log loading
             self.log(f"Project {self.dirlist} successfully opened")
 
+    def add_image(self, image) -> TabWidget:
+
+        image = image.replace('\\\\', '\\').replace('/', '\\')
+        tab_widget = TabWidget(image, model, self)
+        self.detect_color(image).addTab(tab_widget, image.split('\\')[-1])
+
+        return tab_widget
+
     def go_idle(self):
 
         # Hide and clear graphics
@@ -274,6 +296,7 @@ class UI(QMainWindow):
         self.ProjectLine.hide()
         self.ToolsLine.hide()
         self.ImageLine.hide()
+        self.AutoLine.hide()
         self.SaveButton.hide()
         self.AIButton.hide()
         self.AXEButton.hide()
@@ -283,6 +306,7 @@ class UI(QMainWindow):
         self.MirrorXButton.hide()
         self.CropButton.hide()
         self.ZoomButton.hide()
+        self.AutoSBButton.hide()
         self.PinsButton.hide()
         self.BodiesButton.hide()
 
@@ -297,7 +321,8 @@ class UI(QMainWindow):
         # Show toolbar
         self.ProjectLine.show()
         self.ToolsLine.show()
-        self.ImageLine.show()
+        # self.ImageLine.show()
+        self.AutoLine.show()
         self.SaveButton.show()
         self.AIButton.show()
         self.AXEButton.show()
@@ -307,8 +332,9 @@ class UI(QMainWindow):
         self.MirrorXButton.show()
         self.CropButton.show()
         self.ZoomButton.show()
-        self.PinsButton.show()
-        self.BodiesButton.show()
+        self.AutoSBButton.show()
+        # self.PinsButton.show()
+        # self.BodiesButton.show()
 
     def save_project(self):
 
@@ -384,22 +410,33 @@ class UI(QMainWindow):
             geom.setHeight(app.screenAt(QPoint(self.pos().x() + int(self.width() / 2),
                                         self.pos().y() + int(self.height() / 2))).geometry().height() - taskbar_height)
 
+            self.setGeometry(geom)
+
+            # self.setGeometry(10, 10, geom.width() - 20, geom.height() - 20)
+
             # Animate resize
-            self.animation.setDuration(75)
-            self.animation.setStartValue(self.geometry())
-            self.animation.setEndValue(geom)
-            self.animation.start()
+            # self.animation.setDuration(40)
+            # self.animation.setStartValue(self.geometry())
+            # self.animation.setEndValue(geom)
+            # self.animation.start()
 
         else:
 
             self.MaximizeButton.show()
             self.RestoreButton.hide()
 
+            self.setGeometry(self.normalized_geometry)
+
+            # self.setGeometry(int(self.normalized_geometry.x() - 10),
+            #                  int(self.normalized_geometry.y() - 10),
+            #                  int(self.normalized_geometry.width() + 20),
+            #                  int(self.normalized_geometry.height() + 20))
+
             # Animate resize
-            self.animation.setDuration(75)
-            self.animation.setStartValue(self.geometry())
-            self.animation.setEndValue(self.normalized_geometry)
-            self.animation.start()
+            # self.animation.setDuration(40)
+            # self.animation.setStartValue(self.geometry())
+            # self.animation.setEndValue(self.normalized_geometry)
+            # self.animation.start()
 
     def tab_anchoring(self, event):
         """ Resize grip for QTabWidget """
@@ -588,6 +625,7 @@ class UI(QMainWindow):
     def change_curview(self):
 
         self.cur_view = self.GraphicsTabWidget.currentWidget()
+        self.check_items()
 
     def change_bpview(self):
 
@@ -622,6 +660,16 @@ class UI(QMainWindow):
             self.OpacityBox.setReadOnly(True)
             self.OpacityBox.setValue(30)
 
+        self.check_items()
+
+    def check_items(self):
+
+        if self.cur_view != self.bp_view:
+
+            for item in self.TreeListWidget.findItems("desc", Qt.MatchContains, 0):
+
+                print(item)
+
     def next_item(self, count):
 
         if self.mod == "AI":
@@ -630,6 +678,10 @@ class UI(QMainWindow):
             self.TreeListWidget.currentItem().graphic = count[len(count) - 1]
 
             for index in range(0, len(count)):
+
+                if type(self.TreeListWidget.currentItem() == TreeWidgetDescription):
+
+                    continue
 
                 try:
 
