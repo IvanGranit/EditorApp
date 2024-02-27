@@ -4,6 +4,7 @@ from PyQt5.QtGui import *
 
 from simple_objects import SimpleRect, SimplePoint, AnchorRect, CropItem
 from conf_dialog import ConfDialog
+from ver_dialog import VerifyDialog
 
 import numpy as np
 
@@ -588,6 +589,7 @@ class TabWidget(QGraphicsView):
             self.start, self.finish = QPoint(), QPoint()
 
             if self.items():
+
                 [self.scene().removeItem(it) for it in self.items() if type(it) == QGraphicsRectItem]
 
             if self.blueprint:
@@ -606,8 +608,7 @@ class TabWidget(QGraphicsView):
         scene = self.scene()
 
         # Blueprint recognition
-        if os.path.exists(
-                f"{self.scene().canvas.path.removesuffix('.' + self.scene().canvas.path.split('.')[-1])}.json"):
+        if os.path.exists(f"{self.scene().canvas.path.removesuffix('.' + self.scene().canvas.path.split('.')[-1])}.json"):
 
             with open(f"{self.scene().canvas.path.removesuffix('.' + self.scene().canvas.path.split('.')[-1])}.json",
                       'r') as ff:
@@ -620,9 +621,25 @@ class TabWidget(QGraphicsView):
             tab_widget = self.mainwindow.add_image(
                 self.scene().canvas.path.removesuffix(self.scene().canvas.path.split('\\')[-1]) + 'cropped_' +
                 self.scene().canvas.path.split('\\')[-1])
+            self.mainwindow.BlueprintTabWidget.setCurrentWidget(tab_widget)
             scene = tab_widget.scene()
 
+            rects = self.verify_rects(rects)
+
         self.unpack_rects(rects, scene)
+
+    def verify_rects(self, rects) -> dict:
+
+        scene = self.mainwindow.BlueprintTabWidget.currentWidget().scene()
+        view = self.mainwindow.BlueprintTabWidget.currentWidget()
+        rectlist = rects
+
+        dialog = VerifyDialog(view, scene, rectlist)
+        pos = self.mapToGlobal(self.pos())
+        dialog.move(pos.x() + 10, pos.y() + 10)
+        dialog.exec()
+
+        return rectlist
 
     def unpack_rects(self, rects, scene):
 
@@ -654,30 +671,28 @@ class TabWidget(QGraphicsView):
 
                 continue
 
-            if point['shape_type'] == 'rectangle':
+            rect = SimpleRect(x_start=rect_f.x(),
+                              y_start=rect_f.y(),
+                              x_finish=rect_f.width() + rect_f.x(),
+                              y_finish=rect_f.height() + rect_f.y(),
+                              object_name=name,
+                              mod='AXE')
 
-                rect = SimpleRect(x_start=rect_f.x(),
-                                  y_start=rect_f.y(),
-                                  x_finish=rect_f.width() + rect_f.x(),
-                                  y_finish=rect_f.height() + rect_f.y(),
-                                  object_name=point['label'],
-                                  mod='AXE')
+            if point['description'] == 'micro':
 
-                if point['description'] == 'micro':
+                scene.addItem(rect)
 
-                    scene.addItem(rect)
+                if item:
 
-                    if item:
+                    item.child(0).changeStatus(2)
 
-                        item.child(0).changeStatus(2)
+            elif point['description'] == 'text on micro':
 
-                elif point['description'] == 'text on micro':
+                scene.addItem(rect)
 
-                    scene.addItem(rect)
+                if item:
 
-                    if item:
-
-                        item.child(1).changeStatus(2)
+                    item.child(1).changeStatus(2)
 
             if point['shape_type'] == 'circle':
 
@@ -685,7 +700,7 @@ class TabWidget(QGraphicsView):
                                      y_start=rect_f.y(),
                                      x_finish=rect_f.width() + rect_f.x(),
                                      y_finish=rect_f.height() + rect_f.y(),
-                                     object_name=point['label'],
+                                     object_name=name,
                                      mod='AXE')
 
                 scene.addItem(ellipse)
@@ -915,6 +930,7 @@ class TabWidget(QGraphicsView):
                 for item in self.current_el:
 
                     if item.object_name.split('_')[-1] != '1':
+
                         pen = QPen()
                         pen.setColor(QColor("#11ab22"))
                         pen.setWidth(2)
@@ -948,6 +964,7 @@ class TabWidget(QGraphicsView):
                     for item in self.current_el:
 
                         if item.object_name.split('_')[-1] != '1':
+
                             pen = QPen()
                             pen.setColor(QColor("#11AB22"))
                             pen.setWidth(2)
@@ -962,12 +979,14 @@ class TabWidget(QGraphicsView):
             elif self.mainwindow.mod == "AI":
 
                 if self.start == self.finish:
+
                     self.start = QPoint()
                     self.finish = QPoint()
 
                     return
 
                 try:
+
                     dots = self.scene().canvas.pins2json(self.points, confidence=0.25, rotation=self.ai_rotation)
 
                 except RuntimeWarning:
@@ -1008,6 +1027,7 @@ class TabWidget(QGraphicsView):
                 else:
 
                     for num, point in enumerate(dots):
+
                         name = f'{self.mainwindow.TreeListWidget.currentItem().text(0)}_{num + 1}'
 
                         pin = SimplePoint(point, object_name=name, visible_status=self.mainwindow.pins_status, rotation=self.ai_rotation)

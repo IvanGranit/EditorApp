@@ -383,7 +383,6 @@ def main_e(image):
 
         info_d_word = None
         for info in wordsRecognized:
-            print(info)
             word = info["word"]
             minP, maxP = info["rect"]
             # если первая буква -- цифра, то скорее всего это D

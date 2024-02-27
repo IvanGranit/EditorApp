@@ -546,7 +546,7 @@ class SimplePoint(QGraphicsRectItem):
 class SL(QGraphicsSimpleTextItem):
     """Класс для отображения имени объекта"""
 
-    def __init__(self, pos=None, text=None, size=6):
+    def __init__(self, pos=None, text=None, size=6, parent=None):
         super().__init__()
         self.size = size
         self.setText(text)

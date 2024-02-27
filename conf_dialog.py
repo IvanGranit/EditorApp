@@ -1,4 +1,3 @@
-from PyQt5 import uic
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -7,12 +6,16 @@ from errors import NonePointError
 from simple_objects import SimplePoint
 import glob
 
+from simple_objects import SimpleRect
+
 from graphic_func import rotate_rect
 
 
 class ConfDialog(QDialog):
 
     def __init__(self, pins, parent_rect, view):
+
+        from PyQt5 import uic
 
         super(ConfDialog, self).__init__()
         uic.loadUi('ConfDialog.ui', self)
