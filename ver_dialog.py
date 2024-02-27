@@ -3,24 +3,45 @@ from PyQt5.QtCore import *
 
 from simple_objects import SimpleRect
 
-from graphic_func import rotate_rect
-
 
 class VerifyDialog(QDialog):
 
     def __init__(self, view, scene, rects):
 
-        from PyQt5 import uic
-
         super(VerifyDialog, self).__init__()
 
-        uic.loadUi('VerDialog.ui', self)
+        # UI setup
+        self.LineEditFrame = QFrame(self)
+        self.LineEditFrame.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.LineEditFrame.setFixedSize(300, 130)
+        self.LineEditFrame.move(0, 0)
+
+        self.NameLine = QLineEdit(self.LineEditFrame)
+        self.NameLine.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.NameLine.setFixedSize(200, 50)
+        self.NameLine.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+        self.NameLine.move(40, 50)
+
+        self.ButtonsFrame = QFrame(self)
+        self.ButtonsFrame.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.ButtonsFrame.setFixedSize(300, 40)
+        self.ButtonsFrame.move(0, 160)
+
+        self.LeftButton = QPushButton(self.ButtonsFrame)
+        self.LeftButton.setText('<---')
+        self.LeftButton.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.LeftButton.setFixedSize(45, 25)
+        self.LeftButton.move(164, 7)
+
+        self.RightButton = QPushButton(self.ButtonsFrame)
+        self.RightButton.setText('--->')
+        self.RightButton.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.RightButton.setFixedSize(45, 25)
+        self.RightButton.move(233, 7)
 
         self.view = view
         self.scene = scene
         self.rects = rects
-
-        self.OkayButton.clicked.connect(self.next)
 
         self.items = []
         self.pointer_index = 0
@@ -33,30 +54,49 @@ class VerifyDialog(QDialog):
 
         self.temp_dict.clear()
 
-        group_id = self.rects[self.pointer_index]['group_id']
+        group_id = self.rects['shapes'][self.pointer_index]['group_id']
+
         counter = 0
 
-        while self.rects[self.pointer_index]['group_id'] == group_id:
+        # Try
 
-            if self.rects[self.pointer_index]['description'] != 'other':
+        while self.rects['shapes'][self.pointer_index]['group_id'] == group_id:
 
-                self.temp_dict[counter] = self.rects[self.pointer_index]
+            if self.rects['shapes'][self.pointer_index]['description'] != 'other':
+
+                self.temp_dict[counter] = self.rects['shapes'][self.pointer_index]
+                self.NameLine.setPlaceholderText(self.rects['shapes'][self.pointer_index]['label'])
 
             self.pointer_index += 1
 
-        if len(self.dict) != 3 and self.rects[self.pointers_index - 1] != self.rects[-1]:
+        if len(self.dict) != 3:
 
             return self.create_dict()
 
-        elif len(self.dict) == 3 and self.rects[self.pointers_index - 1] != self.rects[-1]:
+        elif len(self.dict) == 3:
 
+            self.display_group()
             self.verify_group()
 
-        if self.rects[self.pointers_index - 1] != self.rects[-1]:
+        if self.rects['shapes'][self.pointer_index - 1] != self.rects['shapes'][-1]:
 
             self.rects.clear()
             self.rects = self.dict
             self.close()
+
+    def left_clicked(self):
+
+        if self.pointer_index >= 0:
+
+            self.pointer_index -= 1
+            self.create_dict()
+
+    def right_clicked(self):
+
+        if self.pointer_index < len(self.rects['shapes']):
+
+            self.pointer_index -= 1
+            self.create_dict()
 
     def display_group(self):
 
@@ -99,8 +139,6 @@ class VerifyDialog(QDialog):
 
             rect['label'] = self.NameLine.text()
             self.dict[len(self.dict) + 1] = rect
-
-        self.create_dict()
 
     def keyPressEvent(self, event):
 
